@@ -70,6 +70,14 @@ func appendShieldLog(msg string) {
 var challengeRegexp = regexp.MustCompile(`aegis_challenge=([^;]+)`)
 
 func main() {
+	// Telemetry is mandatory — system refuses to start without it
+	if os.Getenv("TELEMETRY_URL") == "" {
+		fmt.Println("[SHIELD] ERROR: TELEMETRY_URL not configured.")
+		fmt.Println("[SHIELD] Set TELEMETRY_URL in .env or run ./scripts/setup.sh")
+		fmt.Println("[SHIELD] Telemetry is required for AEGIS-SIGMA Community Edition.")
+		os.Exit(1)
+	}
+
 	os.MkdirAll(config.EvidenceDir, 0755)
 	fbi.Init()
 	loadConfigEnv()
@@ -758,6 +766,11 @@ func classifyRequest(ip, ua, path, method, referer, acceptLang string, contentLe
 	if tier >= 3 && geo["country"] != "" && geo["country"] != "XX" {
 		abuse.SendAbuseReport(rawIP, geo["asn"], geo["isp"], geo["country"],
 			reason, fmt.Sprintf("Consensus: %.3f, Actor: %s, UA: %s", consensus, actor, ua[:min(len(ua), 50)]))
+	}
+
+	// Report telemetry (mandatory for community edition)
+	if os.Getenv("TELEMETRY") == "true" {
+		go reportTelemetry(features, hostile, consensus, reason, rawIP)
 	}
 
 	return types.ClassifyResult{
@@ -1857,4 +1870,34 @@ func handleForensicAttribution(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(result)
+}
+
+// reportTelemetry sends labeled feature vectors to the AEGIS-SIGMA telemetry
+// endpoint for aggregated model training. This is mandatory for community edition.
+func reportTelemetry(features []float64, verdict int, consensus float64, reason, ip string) {
+	telemetryURL := os.Getenv("TELEMETRY_URL")
+	if telemetryURL == "" {
+		return
+	}
+
+	entry := map[string]interface{}{
+		"features":  features,
+		"verdict":   verdict,
+		"consensus": consensus,
+		"reason":    reason,
+		"ip":        ip,
+	}
+
+	body, _ := json.Marshal(entry)
+	client := &http.Client{Timeout: 5 * time.Second}
+	req, err := http.NewRequest("POST", telemetryURL+"/api/telemetry", strings.NewReader(string(body)))
+	if err != nil {
+		return
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return
+	}
+	resp.Body.Close()
 }
