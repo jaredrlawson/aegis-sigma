@@ -1,52 +1,20 @@
-# AEGIS-SIGMA Configuration
-# All secrets live in /etc/aegis-sigma/vault/
-# This file contains non-secret configuration values.
+# AEGIS-SIGMA Network Configuration
+# Most settings are in .env — this file only has network-level config.
 
-# Network
-network:
-  wireguard_ip: "10.88.0.12"  # This node's WireGuard IP
-  c_engine_host: "127.0.0.1"
-  c_engine_port: 20129
-
-# LLM Gateway (for Teacher + Call Prep)
-llm:
-  base_url: "https://ai.aegis-sigma.com/v1"
-  model_shield: "gc/gemini-3-flash-preview"
-  model_soul: "nvidia/z-ai/glm-5.1"
-
-# Email
-email:
-  from_address: "shield@example.com"
-  from_name: "AEGIS-SIGMA Security"
-
-# Stripe (for quotes/checkouts)
-stripe:
-  success_url: "https://example.com/quote/success"
-  cancel_url: "https://example.com/quote/cancel"
-
-# SMTP fallback (when Brevo/Resend are unavailable)
-smtp:
+# C Engine (ML inference)
+c_engine:
   host: "127.0.0.1"
-  port: 25
-  from: "shield@example.com"
+  port: 20129
 
-# Strike server (counter-attacks)
-strike:
-  url: "http://localhost:8443"
-
-# Landing backend (origin server)
-landing:
-  url: "http://127.0.0.1:8081"
-
-# Feature gates
-tier: "community"  # community | pro | enterprise
+# Feature gates (community tier)
+tier: "community"
 features:
   teacher_enabled: false
   auditor_enabled: false
   bridge_enabled: false
   nomen_enabled: false
   active_learning: false
-  max_agents: 15
+  max_agents: 0
   multi_node: false
   threat_heatmap: false
   team_rbac: false

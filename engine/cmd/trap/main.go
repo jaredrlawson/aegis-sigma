@@ -30,7 +30,7 @@ var fakeLogins = map[string]string{
 	"/xmlrpc.php":     `{"status":"ok","message":"XML-RPC Server","version":"2.0"}`,
 	"/actuator":       `{"status":"ok","message":"Spring Boot Actuator","version":"3.2.1"}`,
 	"/server-status":  `{"status":"ok","message":"Apache Server Status","version":"2.4.58"}`,
-	"/.env":           "DB_PASSWORD=fake_secret_123\nAWS_KEY=AKIA1234EXAMPLE\nDEBUG=true\n",
+	"/.env":           "DB_PASS=****\nAWS_KEY=AKIAXXXXEXAMPLE\nDEBUG=true\n",
 	"/.git/config":    "[core]\nrepositoryformatversion = 0\n[remote \"origin\"]\nurl = git@github.com:company/internal.git\n",
 	"/.git/HEAD":      "ref: refs/heads/main\n",
 	"/.aws/credentials": "[default]\naws_access_key_id = AKIA1234EXAMPLE\naws_secret_access_key = fake_secret\n",
