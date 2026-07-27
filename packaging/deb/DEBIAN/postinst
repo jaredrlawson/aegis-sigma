@@ -1,0 +1,30 @@
+#!/bin/bash
+set -e
+
+echo ""
+echo "  AEGIS-SIGMA Community Edition installed."
+echo ""
+
+# Create .env from template if not exists
+if [ ! -f /etc/aegis-sigma/.env ]; then
+    cp /usr/share/aegis-sigma/.env.example /etc/aegis-sigma/.env
+    echo "  Created default config: /etc/aegis-sigma/.env"
+    echo "  Run: sudo /usr/lib/aegis-sigma/setup-wizard.sh"
+    echo ""
+fi
+
+# Create vault directory
+mkdir -p /etc/aegis-sigma/vault
+chmod 700 /etc/aegis-sigma/vault
+
+# Create log directory
+mkdir -p /var/log/aegis
+
+echo "  Services available:"
+echo "    aegis-shield-go  — HTTP classifier (port 3000)"
+echo "    aegis-soul       — clustering (port 3007)"
+echo "    aegis-geoip      — IP enrichment (port 4040)"
+echo "    aegis-trap       — honeypots (port 3001)"
+echo "    aegis-bridge     — lead API (port 8899)"
+echo "    aegis-c-engine   — ML inference (port 20129)"
+echo ""

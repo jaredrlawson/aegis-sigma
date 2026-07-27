@@ -1,0 +1,25 @@
+version: '3.8'
+services:
+  aegis-sigma:
+    build:
+      context: .
+      dockerfile: packaging/docker/Dockerfile
+    ports:
+      - "3000:3000"   # Shield
+      - "3007:3007"   # Soul
+      - "4040:4040"   # GeoIP
+      - "8086:8086"   # C engine status
+      - "8899:8899"   # Bridge
+      - "9001:9001"   # Dashboard
+    volumes:
+      - ./config/config.yaml:/etc/aegis-sigma/config.yaml
+      - aegis-data:/mnt/data
+      - aegis-logs:/var/log/aegis
+    restart: unless-stopped
+    environment:
+      - STRIKE_HOST=host.docker.internal
+      - STRIKE_PORT=8443
+
+volumes:
+  aegis-data:
+  aegis-logs:

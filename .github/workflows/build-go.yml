@@ -1,0 +1,32 @@
+name: Build Go Binaries
+on:
+  push:
+    tags: ['v*']
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [amd64, arm64]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.22'
+      - name: Build
+        env:
+          GOOS: linux
+          GOARCH: ${{ matrix.arch }}
+          CGO_ENABLED: '0'
+        run: |
+          for cmd in shield soul geoip trap dashboard bridge; do
+            go build -ldflags="-s -w" -o aegis-$cmd ./engine/cmd/$cmd/
+          done
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: aegis-linux-${{ matrix.arch }}
+          path: aegis-*

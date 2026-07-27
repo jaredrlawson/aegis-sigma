@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NOMEN Pipeline</title><meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"><meta http-equiv="Pragma" content="no-cache"><meta http-equiv="Expires" content="0">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><text y='24' font-size='24'>📡</text></svg>">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+/* Hide scrollbar everywhere but keep scrolling */
+* { scrollbar-width: none !important; -ms-overflow-style: none !important; }
+*::-webkit-scrollbar { display: none !important; width: 0 !important; height: 0 !important; background: transparent !important; }
+*::-webkit-scrollbar-track { display: none !important; }
+*::-webkit-scrollbar-thumb { display: none !important; }
+*::-webkit-scrollbar-corner { display: none !important; }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0B0B0D; color: #e6edf3; }
+.login-overlay { position: fixed; top:0;left:0;right:0;bottom:0;background:#0B0B0D;display:flex;align-items:center;justify-content:center;z-index:999; }
+.login-box { background:#1a1a2e; border:1px solid rgba(0,229,255,0.15); border-radius:12px; padding:32px; width:300px;text-align:center; }
+.login-box h1 { color:#00E5FF; font-size:20px; margin-bottom:4px; }
+.login-box p { color:#555; font-size:11px; margin-bottom:20px; }
+.login-box input { width:100%; padding:10px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#e6edf3; font-size:13px; margin-bottom:12px; }
+.login-box input:focus { outline:none; border-color:#00E5FF; }
+.login-box button { width:100%; padding:10px; background:#00E5FF; color:#0B0B0D; border:none; border-radius:6px; font-size:13px; font-weight:700; cursor:pointer; }
+.login-box .error { color:#CF222E; font-size:11px; margin-top:8px; }
+.header { padding:20px; border-bottom:1px solid rgba(0,229,255,0.1);display:flex;align-items:center;justify-content:space-between; }
+.header h1 { color:#00E5FF; font-size:20px; font-weight:700; }
+.header span { color:#8b949e; font-size:12px; }
+.header .logout { color:#555; font-size:11px; cursor:pointer; text-decoration:underline; }
+.dashboard { display:none; }
+.stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; padding:12px 20px; }
+.stat { background:rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:10px 14px; }
+.stat-num { font-size:22px; font-weight:700; color:#00E5FF; }
+.stat-label { font-size:11px; color:#8b949e; margin-top:4px; text-transform:uppercase; letter-spacing:1px; }
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:12px; padding:0 20px 12px; }
+.section { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:12px; padding:12px; }
+.section h2 { color:#00E5FF; font-size:13px; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px; }
+.lead-card { background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:10px 12px; margin-bottom:6px; display:flex; flex-wrap:wrap; align-items:center; gap:8px; cursor:pointer; }
+.lead-card:hover { border-color:rgba(0,229,255,0.3); }
+.lead-card.new { border-left:3px solid #00E5FF; }
+.lead-card.emailed { border-left:3px solid #50C878; }
+.lead-card.bounced { border-left:3px solid #ff4444; }
+.lead-name { font-size:13px; font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lead-domain { font-size:11px; color:#8b949e; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.lead-status { font-size:9px; padding:2px 6px; border-radius:4px; font-weight:600; text-transform:uppercase; }
+.status-pending { color:#FFB74D; background:rgba(255,183,77,0.1); }
+.status-emailed { color:#50C878; background:rgba(80,200,120,0.1); }
+.status-researched { color:#00E5FF; background:rgba(0,229,255,0.1); }
+.lead-meta { font-size:12px; color:#555; margin-left:auto; }
+.config-row { display:flex; align-items:center; gap:10px; margin-bottom:10px; }
+.config-row input { flex:1; padding:8px 12px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.1); border-radius:6px; color:#e6edf3; font-size:12px; }
+.config-row input:focus { outline:none; border-color:#00E5FF; }
+.config-row button { padding:8px 16px; background:rgba(0,229,255,0.1); border:1px solid #00E5FF; border-radius:6px; color:#00E5FF; cursor:pointer; font-size:11px; }
+.config-row .city-tag { display:inline-flex;align-items:center;gap:6px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);border-radius:4px;padding:4px 10px;font-size:11px; }
+.city-tag .del { cursor:pointer; color:#ff4444; font-size:13px; }
+.empty-state { color:#555; text-align:center; padding:40px; font-size:12px; }
+
+/* --- Tablet: stack grid, scrollable tables, wrap tabs --- */
+@media (max-width: 1024px) {
+  .grid-2 { grid-template-columns: 1fr; padding: 0 8px 8px; }
+  .stats { grid-template-columns: repeat(2, 1fr); padding: 8px 12px; gap: 6px; }
+  .card-tabs { flex-wrap: wrap; gap: 0; }
+  .card-tab { padding: 6px 10px; font-size: 10px; }
+  .table-wrap { width: 100%; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  .table-wrap .admin-table { min-width: 550px; width: 100%; }
+  .admin-form { flex-wrap: wrap; }
+  .admin-form input { width: 80px; }
+  #leads, #calls { overflow-x: hidden; max-height: 500px; overflow-y: auto; padding: 0 4px; }
+  .lead-card { min-width: 0; padding: 8px 10px; }
+  .lead-card > div { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lead-meta { font-size: 11px; }
+  .config-row { flex-wrap: wrap; }
+  .config-row input { min-width: 0; }
+  #map { height: 280px; }
+}
+
+/* --- Phone: compact everything --- */
+@media (max-width: 600px) {
+  .header { padding: 10px; }
+  .header h1 { font-size: 15px; }
+  .stats { grid-template-columns: repeat(2, 1fr); gap: 4px; padding: 6px 8px; }
+  .stat { padding: 6px 8px; }
+  .stat-num { font-size: 16px; }
+  .stat-label { font-size: 9px; letter-spacing: 0.5px; }
+  .grid-2 { padding: 0 4px 4px; gap: 6px; }
+  .section { padding: 8px; }
+  .section h2 { font-size: 11px; }
+  .card-tab { padding: 5px 8px; font-size: 9px; letter-spacing: 0.5px; }
+  #leads, #calls { max-height: 400px; }
+  .lead-card { padding: 6px 8px; margin-bottom: 4px; flex-wrap: wrap; }
+  .lead-name { font-size: 12px; }
+  .lead-domain { font-size: 10px; }
+  .lead-meta { font-size: 10px; margin-left: 0; width: 100%; margin-top: 4px; }
+  .table-wrap .admin-table { min-width: 400px; }
+  .admin-table th, .admin-table td { padding: 4px 6px; font-size: 10px; }
+  .admin-form { flex-direction: column; }
+  .admin-form input { width: 100%; }
+  .modal-content { padding: 14px 16px; max-width: 98%; }
+  .modal-grid { grid-template-columns: 1fr 1fr !important; gap: 6px 10px; padding: 10px 12px; }
+  .modal h2 { font-size: 14px; }
+  #map { height: 220px; }
+  .config-row { flex-direction: column; gap: 6px; }
+  .config-row input { width: 100%; }
+  .city-tag { font-size: 10px; padding: 3px 8px; }
+}
+
+.modal { display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9999;align-items:center;justify-content:center; }
+.modal.show { display:flex; }
+.modal-content { background:#1a1a2e; border:1px solid rgba(0,229,255,0.2); border-radius:12px; padding:28px 32px; max-width:720px; width:94%; max-height:85vh; overflow-y:auto; position:relative; z-index:10000; isolation:isolate; }
+.modal h2 { font-size:18px; color:#00E5FF; margin:0 0 14px 0; }
+.modal-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:12px 20px; margin-bottom:16px; background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.06); border-radius:10px; padding:18px 22px; }
+.modal-grid .label { color:#8b949e; font-size:12px; text-transform:uppercase; letter-spacing:0.8px; margin-bottom:4px; width:100%; }
+.modal-grid .val { color:#e6edf3; font-size:14px; word-break:break-word; overflow-wrap:break-word; line-height:1.4; width:100%; }
+.modal-grid .val a { color:#00E5FF; word-break:break-all; display:inline-block; max-width:100%; overflow:hidden; text-overflow:ellipsis; }
+.close { float:right; cursor:pointer; color:#8b949e; font-size:22px; line-height:1; }
+
+.progress-wrap { width:100%; background:rgba(255,255,255,0.06); border-radius:6px; overflow:hidden; margin:16px 0; height:6px; }
+.progress-bar { height:6px; width:0%; background:linear-gradient(90deg,#00E5FF,#50C878); border-radius:6px; transition:width 0.3s; }
+.progress-text { color:#8b949e; font-size:11px; text-align:center; margin-top:4px; }
+.scanning-anim { text-align:center; padding:40px; border-radius:8px; overflow:hidden; }
+.scanning-anim .title { color:#00E5FF; font-size:14px; margin-bottom:16px; }
+.scanning-anim .line { width:100%; height:4px; background:rgba(0,229,255,0.1); border-radius:4px; overflow:hidden; margin-bottom:8px; }
+.scanning-anim .line-fill { height:4px; background:linear-gradient(90deg,#00E5FF,#50C878); border-radius:4px; animation:scanProgress 2s ease-in-out infinite; }
+@keyframes scanProgress { 0%{width:5%;margin-left:0} 50%{width:60%} 100%{width:5%;margin-left:95%} }
+.scanning-anim .detail { color:#555; font-size:11px; margin-top:12px; font-family:monospace; }
+
+
+.card-tabs{display:flex;gap:0;margin-bottom:6px;border-bottom:1px solid rgba(0,229,255,0.1)}
+.card-tab{padding:8px 16px;cursor:pointer;font-size:11px;font-weight:600;color:#8b949e;border-bottom:2px solid transparent;margin-bottom:-1px;user-select:none;text-transform:uppercase;letter-spacing:1px}
+.card-tab:hover{color:#00E5FF}
+.card-tab.active{color:#00E5FF;border-bottom-color:#00E5FF}
+.card-pane{display:none}
+.card-pane.active{display:block}
+
+.admin-table{width:100%;border-collapse:collapse;margin:8px 0}
+.admin-table th{text-align:left;padding:8px 10px;font-weight:600;font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:1px;border-bottom:1px solid rgba(255,255,255,0.06)}
+.admin-table td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.04);font-size:12px}
+.admin-table tr:hover td{background:rgba(0,229,255,0.02)}
+.admin-form{display:flex;flex-wrap:wrap;gap:6px;align-items:end;margin-top:12px;padding:12px;background:rgba(0,229,255,0.03);border:1px solid rgba(0,229,255,0.1);border-radius:8px}
+.admin-form label{font-size:10px;color:#8b949e;text-transform:uppercase;letter-spacing:0.5px;display:block;margin-bottom:2px}
+.admin-form input{padding:6px 8px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#e6edf3;font-size:12px;width:100px}
+.admin-form input:focus{outline:none;border-color:#00E5FF}
+.admin-form button{padding:6px 14px;background:rgba(0,229,255,0.1);border:1px solid #00E5FF;border-radius:4px;color:#00E5FF;cursor:pointer;font-size:11px;font-weight:600}
+.admin-form button:hover{background:rgba(0,229,255,0.2)}
+.dl{font-size:10px;color:#8b949e;margin-left:4px;cursor:pointer;font-weight:400}
+.dl:hover{color:#00E5FF}
+
+
+
+
+
+
+
+
+
+
+
+
+</style>
+</head>
+<body>
+<div class="login-overlay" id="login">
+  <div class="login-box">
+    <h1>NOMEN</h1>
+    <p>lead pipeline · aegis security</p>
+    <input type="password" id="pass" placeholder="password" onkeydown="if(event.key==='Enter')login()">
+    <button onclick="login()">Unlock</button>
+    <div class="error" id="l_err"></div>
+  </div>
+</div>
+
+<div id="bridge-offline" style="display:none;background:rgba(255,68,68,0.1);border:1px solid rgba(255,68,68,0.3);border-radius:8px;padding:10px 16px;margin:8px 20px;font-size:12px;color:#ff6b6b;align-items:center;gap:8px;">
+    <span>&#9888;</span> ARM bridge is offline — showing cached data. Polling reduced to 2min.
+</div>
+<div class="dashboard" id="dash">
+  <div class="header">
+    <div><h1>NOMEN <span>lead pipeline</span></h1></div>
+    <div class="logout" onclick="logout()">lock</div>
+  </div>
+  <div class="stats" id="stats"></div>
+  <div class="grid-2" id="main-grid">
+        <div class="section" id="leads-section">
+      <div class="card-tabs">
+        <div class="card-tab active" onclick="switchCardTab('leads')">Leads</div>
+        <div class="card-tab" onclick="switchCardTab('calls')">Calls <span id="calls-count" style="font-size:9px;opacity:0.7;"></span></div>
+        <div class="card-tab" onclick="switchCardTab('sales')">Sales Team <span class="dl" onclick="event.stopPropagation();exportCSV2('sales')" title="Download CSV">&#11015;</span></div>
+        <div class="card-tab" onclick="switchCardTab('commissions')">Commissions</div>
+      </div>
+      <div class="card-pane active" id="card-leads">
+      <h2>Leads <span id="lead-count" style="color:#555;font-size:11px;"></span>
+        <span style="float:right;font-size:11px;font-weight:400;cursor:pointer;color:#00E5FF;" onclick="toggleAddForm()">+ Add</span></h2>
+      <div id="add-form" style="display:none;margin-bottom:12px;padding:12px;background:rgba(0,229,255,0.04);border:1px solid rgba(0,229,255,0.15);border-radius:8px;">
+        <div style="font-size:11px;color:#00E5FF;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">Search Categories</div>
+        <div style="display:flex;gap:6px;margin-bottom:6px;">
+          <input id="new-biztype" placeholder="e.g. cybersecurity, IT support" style="flex:1;padding:6px;background:rgba(255,255,255,0.04);border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#e6edf3;font-size:12px;" onkeydown="if(event.key==='Enter')addBizType()">
+          <button onclick="addBizType()" style="padding:6px 14px;background:rgba(0,229,255,0.1);border:1px solid #00E5FF;border-radius:4px;color:#00E5FF;cursor:pointer;font-size:11px;">Add</button>
+        </div>
+        <div id="biztypes"></div>
+        <div style="margin-top:8px;text-align:right;"><button onclick="document.getElementById('add-form').style.display='none'" style="padding:4px 12px;background:transparent;border:1px solid rgba(255,255,255,0.1);border-radius:4px;color:#8b949e;cursor:pointer;font-size:11px;">Done</button></div>
+      </div>
+<div id="leads" style="max-height:600px;overflow-y:auto;"><div class="empty-state">Loading...</div></div>
+<div id="lead-pages" style="display:flex;justify-content:center;gap:6px;margin-top:10px;"></div>
+<script>document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[style*="overflow"]').forEach(function(e){e.style.scrollbarWidth='none'});});</script>
+      </div>
+      <div class="card-pane" id="card-calls">
+      <h2>Calls <span id="calls-total" style="color:#555;font-size:11px;"></span></h2>
+<div id="calls" style="max-height:600px;overflow-y:auto;"><div class="empty-state">Loading...</div></div>
+<div id="call-pages" style="display:flex;justify-content:center;gap:6px;margin-top:10px;"></div>
+      </div>
+      <div class="card-pane" id="card-sales">
+        <h2>Sales Team <span onclick="exportCSV2('sales')" style="float:right;font-size:11px;font-weight:400;cursor:pointer;color:#00E5FF">Download CSV</span></h2>
+        <div class="table-wrap"><table class="admin-table" id="sales-table"><tr><th>Name</th><th>Email</th><th>Phone</th><th>Radius</th><th>Caps</th><th>Cooldown</th><th>Commission</th><th>Status</th></tr><tr><td colspan="8" style="padding:20px;color:#555;text-align:center">Loading...</td></tr></table></div>
+        <div class="admin-form">
+          <div><label>Name</label><input id="s-name"></div>
+          <div><label>Email</label><input id="s-email"></div>
+          <div><label>Phone</label><input id="s-phone"></div>
+          <div><label>Radius mi</label><input id="s-radius" value="50" style="width:60px"></div>
+          <div><label>Day cap</label><input id="s-day" value="5" style="width:50px"></div>
+          <div><label>Wk cap</label><input id="s-wk" value="25" style="width:50px"></div>
+          <div><label>Cooldown h</label><input id="s-cool" value="2" style="width:50px"></div>
+          <div><label>Comm %</label><input id="s-comm" value="10" style="width:50px"></div>
+          <button onclick="adminAddSalesman()">+ Add Salesman</button>
+        </div>
+        <div id="sales-msg" class="note" style="color:#555;font-size:11px"></div>
+      </div>
+      <div class="card-pane" id="card-commissions">
+        <h2>Commissions <span onclick="exportCSV2('commissions')" style="float:right;font-size:11px;font-weight:400;cursor:pointer;color:#00E5FF">Download CSV</span></h2>
+        <div class="table-wrap"><table class="admin-table" id="comm-table"><tr><th>Salesman</th><th>Domain</th><th>Product</th><th>Sale</th><th>%</th><th>Commission</th><th>Status</th><th>Closed</th></tr><tr><td colspan="8" style="padding:20px;color:#555;text-align:center">Loading...</td></tr></table></div>
+      </div>
+      <script>document.addEventListener('DOMContentLoaded',function(){document.querySelectorAll('[style*="overflow"]').forEach(function(e){e.style.scrollbarWidth='none'});});</script>
+    </div>
+    <div class="section" style="position:relative;">
+      <h2 onclick="toggleMapSection()" style="cursor:pointer;display:flex;align-items:center;gap:8px;">
+        <span id="map-toggle-icon" style="font-size:12px;color:#00E5FF;">▼</span> Lead Locations
+      </h2>
+      <div id="map-section">
+      <div id="map" style="height:350px;border-radius:8px;margin-bottom:10px;"></div>
+      <div class="config-row"><input type="text" id="new-city" placeholder="Naples, FL; Fort Myers, FL" onkeydown="if(event.key==='Enter')addCity()"><button onclick="addCity()">Add</button></div>
+      <div id="cities"></div>
+      </div>
+    </div>
+  </div>
+  <div class="modal" id="modal"><div class="modal-content" id="modal-content"></div></div>
+</div>
+
+<script>
+const API = "/nomen/api";
+const DATA = "/data/api";
+
+function login() {
+  var pass = document.getElementById("pass").value;
+  if (pass === PASS) {
+    localStorage.setItem("nomen_auth", "1");
+    document.getElementById("login").style.display = "none";
+    document.getElementById("dash").style.display = "block";
+    initMap();
+    setTimeout(function(){ if(map) map.invalidateSize(); }, 200);
+    loadBizTypes(); load(); loadCities(); startPolling();
+  } else {
+    document.getElementById("l_err").textContent = "wrong password";
+  }
+}
+function logout() { localStorage.removeItem("nomen_auth"); location.reload(); }
+if (localStorage.getItem("nomen_auth") === "1") {
+  document.getElementById("login").style.display = "none";
+  document.getElementById("dash").style.display = "block";
+  loadBizTypes(); load(); initMap(); loadCities(); startPolling();
+}
+
+var map = null;
+var mapMarkers = [];
+var cityMarkers = [];
+var _mapCollapsed = false;
+
+function toggleMapSection() {
+  _mapCollapsed = !_mapCollapsed;
+  var el = document.getElementById('map-section');
+  var icon = document.getElementById('map-toggle-icon');
+  if (el) el.style.display = _mapCollapsed ? 'none' : 'block';
+  if (icon) icon.textContent = _mapCollapsed ? '▶' : '▼';
+  if (map && !_mapCollapsed) setTimeout(function() { map.invalidateSize(); }, 100);
+}
+
+function initMap() {
+  if (map) return;
+  map = L.map("map").setView([26.14, -81.79], 10);
+  L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { attribution: '© OpenStreetMap' }).addTo(map);
+  map.on("click", function(e) {
+    var lat = e.latlng.lat.toFixed(4);
+    var lng = e.latlng.lng.toFixed(4);
+    var city = prompt("City name:", lat+","+lng);
+    if (city) {
+      fetch(DATA + "/config", {
+        method: "POST", headers: {"Content-Type":"application/json"},
+        body: JSON.stringify({ key: "city_" + Date.now(), value: city + "|" + lat + "|" + lng })
+      }).then(function(){ loadCities(); });
+    }
+  });
+}
+
+function addMarker(lat, lng, label, isCity) {
+  if (!map) return;
+  var marker = L.marker([lat, lng]).addTo(map).bindPopup(label);
+  if (isCity) {
+    cityMarkers.push(marker);
+  } else {
+    mapMarkers.push(marker);
+  }
+}
+
+
+var _geoCache = {};
+function plotLeads(leads) {
+  if (!map) return;
+  // Only clear lead markers, keep city markers
+  for (var m of mapMarkers) map.removeLayer(m);
+  mapMarkers = [];
+  var bounds = [];
+  // Collect city marker positions for bounds
+  for (var m of cityMarkers) {
+    var ll = m.getLatLng();
+    bounds.push([ll.lat, ll.lng]);
+  }
+  var geoQueue = [];
+  for (var i = 0; i < leads.length; i++) {
+    (function(lead) {
+      var loc = lead.city || (lead.address ? lead.address.split(',').pop().trim() : '');
+      if (!loc) return;
+      var cacheKey = loc.toLowerCase().replace(/[^a-z0-9]/g, '');
+      if (_geoCache[cacheKey]) {
+        var c = _geoCache[cacheKey];
+        var marker = L.marker([c.lat, c.lng]).addTo(map).bindPopup('<b>' + (lead.name||'') + '</b><br>' + (lead.address||loc));
+        mapMarkers.push(marker);
+        bounds.push([c.lat, c.lng]);
+        return;
+      }
+      geoQueue.push({ lead: lead, loc: loc, key: cacheKey });
+    })(leads[i]);
+  }
+  // Fit bounds to show all markers (cities + cached leads)
+  if (bounds.length > 1 && map) map.fitBounds(bounds);
+  else if (bounds.length === 1 && map) map.setView(bounds[0], 10);
+  // Geocode remaining leads via Nominatim (rate-limited, 1/sec)
+  var geoIdx = 0;
+  function nextGeo() {
+    if (geoIdx >= geoQueue.length) {
+      if (bounds.length > 1 && map) map.fitBounds(bounds);
+      return;
+    }
+    var item = geoQueue[geoIdx++];
+    var xhr = new XMLHttpRequest();
+    var url = 'https://nominatim.openstreetmap.org/search?format=json&limit=1&q=' + encodeURIComponent(item.loc);
+    xhr.open('GET', url, true);
+    xhr.onload = function() {
+      try {
+        var data = JSON.parse(xhr.responseText);
+        if (data && data[0]) {
+          var lat = parseFloat(data[0].lat);
+          var lng = parseFloat(data[0].lon);
+          _geoCache[item.key] = { lat: lat, lng: lng };
+          var marker = L.marker([lat, lng]).addTo(map).bindPopup('<b>' + (item.lead.name||'') + '</b><br>' + (item.lead.address||item.loc));
+          mapMarkers.push(marker);
+          bounds.push([lat, lng]);
+        }
+      } catch(e) {}
+      setTimeout(nextGeo, 1100);
+    };
+    xhr.onerror = function() { setTimeout(nextGeo, 1100); };
+    xhr.send();
+  }
+  if (geoQueue.length) setTimeout(nextGeo, 200);
+}
+
+async function addCity() {
+  var input = document.getElementById("new-city");
+  var val = input.value.trim();
+  if (!val) return;
+  var cities = val.split(/[,;]\s*/).filter(Boolean);
+  for (var raw of cities) {
+    var coords = raw.match(/^(-?\d+\.?\d*)\s*[,;]\s*(-?\d+\.?\d*)$/);
+    var key = "city_" + Date.now() + Math.random().toString(36).slice(2,4);
+    await fetch(DATA + "/config", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ key: key, value: coords ? raw + "|" + coords[1] + "|" + coords[2] : raw + "||" }) });
+  }
+  input.value = "";
+  loadCities();
+}
+
+async function removeCity(key) {
+  await fetch(DATA + "/config", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ key: key, value: "" }) });
+  loadCities();
+}
+
+async function loadCities() {
+  var cfg;
+  try {
+    cfg = await fetch(DATA + "/config").then(function(r) { if(!r.ok) throw new Error('config '+r.status); return r.json(); });
+  } catch(e) {
+    console.warn('[NOMEN] loadCities failed:', e.message);
+    var banner = document.getElementById('bridge-offline');
+    _consecutiveFails >= 3 ? (banner ? banner.style.display = 'flex' : null) : null;
+    return;
+  }
+  var html = "";
+  var cityCount = 0;
+  var cityNames = [];
+  // Clear old city markers only
+  for (var m of cityMarkers) if (map) map.removeLayer(m);
+  cityMarkers = [];
+  var cityBounds = [];
+  for (var k in cfg) {
+    if (!k.startsWith("city_")) continue;
+    if (!cfg[k]) continue;
+    var parts = cfg[k].split("|");
+    var cityName = parts[0];
+    if (!cityName || cityName.length < 2) continue;
+    var lat = parseFloat(parts[1]);
+    var lng = parseFloat(parts[2]);
+    cityNames.push(cityName);
+    cityCount++;
+    if (!isNaN(lat) && !isNaN(lng) && map) {
+      addMarker(lat, lng, cityName, true);
+      cityBounds.push([lat, lng]);
+    }
+  }
+  // Compact display: comma-separated list with delete buttons
+  if (cityCount > 0) {
+    html = '<div style="font-size:11px;color:#8b949e;margin-bottom:6px;">' + cityCount + ' target cities:</div>';
+    html += '<div style="display:flex;flex-wrap:wrap;gap:4px;">';
+    for (var k in cfg) {
+      if (!k.startsWith("city_") || !cfg[k]) continue;
+      var parts = cfg[k].split("|");
+      var cn = parts[0];
+      if (!cn || cn.length < 2) continue;
+      html += '<span style="font-size:11px;padding:3px 8px;background:rgba(0,229,255,0.08);border:1px solid rgba(0,229,255,0.2);border-radius:4px;display:inline-flex;align-items:center;gap:4px;">' + cn + ' <span onclick="removeCity(\''+k+'\')" style="cursor:pointer;color:#ff4444;font-size:10px;">&times;</span></span>';
+    }
+    html += '</div>';
+  }
+  document.getElementById("cities").innerHTML = html || '<span style="color:#555;font-size:11px;">Add cities for VPS nomen to hunt</span>';
+  // Fit map to show all cities
+  if (cityBounds.length > 1 && map) map.fitBounds(cityBounds);
+  else if (cityBounds.length === 1 && map) map.setView(cityBounds[0], 10);
+}
+
+var _lastHash='';
+var currentPage = 1;
+var leadsPerPage = 40;
+
+function getSeverity(score) {
+  score = parseInt(score) || 0;
+  if (score < 30) return { label: "CRITICAL", color: "#ff4444", bg: "rgba(255,68,68,0.15)" };
+  if (score < 50) return { label: "HIGH", color: "#FF9800", bg: "rgba(255,152,0,0.15)" };
+  if (score < 70) return { label: "MEDIUM", color: "#FFB74D", bg: "rgba(255,183,77,0.1)" };
+  return { label: "LOW", color: "#50C878", bg: "rgba(80,200,120,0.1)" };
+}
+
+var _pollTimer = null;
+var _pollFast = 30000;   // 30s when bridge is healthy
+var _pollSlow = 120000;  // 2min when bridge is down
+var _consecutiveFails = 0;
+var _pollStopped = false;
+var _pollAbort = null;
+var _pollLoading = false;
+function startPolling() {
+  if (_pollTimer) clearInterval(_pollTimer);
+  _pollTimer = setInterval(load, _pollFast);
+}
+function slowDownPolling() {
+  if (_pollTimer) clearInterval(_pollTimer);
+  _pollStopped = false;
+  _pollTimer = setInterval(load, _pollSlow);
+}
+function speedUpPolling() {
+  if (_pollTimer) clearInterval(_pollTimer);
+  _pollStopped = false;
+  _pollTimer = setInterval(load, _pollFast);
+}
+
+async function load() {
+  if (_pollStopped) return;
+  if (_consecutiveFails >= 5) {
+    _pollStopped = true;
+    if (_pollTimer) clearInterval(_pollTimer);
+    _pollTimer = null;
+    return;
+  }
+  if (_pollLoading) return;
+  _pollLoading = true;
+  if (_pollAbort) _pollAbort.abort();
+  _pollAbort = new AbortController();
+  var timeout = setTimeout(function() { _pollAbort.abort(); }, 15000);
+  try {
+    stats = await fetch(API+"/stats", { signal: _pollAbort.signal });
+    if (!stats.ok) throw new Error('stats '+stats.status);
+    stats = await stats.json();
+    // Fetch ALL leads for accurate pagination and calls tab
+    leadsRes = await fetch(API+"/leads?limit=9999&page=1", { signal: _pollAbort.signal });
+    if (!leadsRes.ok) throw new Error('leads '+leadsRes.status);
+    leadsRes = await leadsRes.json();
+    clearTimeout(timeout);
+    _consecutiveFails = 0;
+  } catch(err) {
+    clearTimeout(timeout);
+    _consecutiveFails++;
+    if (_consecutiveFails >= 5) {
+      _pollStopped = true;
+      if (_pollTimer) clearInterval(_pollTimer);
+      _pollTimer = null;
+    } else {
+      slowDownPolling();
+    }
+    _pollLoading = false;
+    return;
+  }
+  _pollLoading = false;
+  var leads = leadsRes.leads || [];
+  // Accumulate leads across pages for modal lookup
+  if (!_allLeadsById) _allLeadsById = {};
+  for (var l of leads) _allLeadsById[l.id] = l;
+  _allLeads = leads;
+  var newHash=stats.total+'_'+stats.sent+'_'+stats.replied+'_'+(leads.slice(0,10).map(function(l){return l.id+'|'+l.score+'|'+(l.outreach_sent||0)}).join('')||'');
+  if(newHash===_lastHash)return;
+  _lastHash=newHash;
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><div class="stat-num">${stats.total}</div><div class="stat-label">Leads</div></div>
+    <div class="stat"><div class="stat-num">${stats.swotReports}</div><div class="stat-label">SWOT Reports</div></div>
+    <div class="stat"><div class="stat-num">${stats.sent}</div><div class="stat-label">Emailed</div></div>
+    <div class="stat"><div class="stat-num">${stats.replied}</div><div class="stat-label">Replies</div></div>`;
+  // Filter: only show leads with score < 65 AND at least one contact method (email or phone)
+  var filtered = leads.filter(function(l) { 
+    return (parseInt(l.score) || 50) < 65 && (l.email || l.phone);
+  });
+  // Sort: lowest score (best leads) first
+  filtered.sort(function(a, b) { return (parseInt(a.score) || 50) - (parseInt(b.score) || 50); });
+  var total = filtered.length;
+  document.getElementById("lead-count").textContent = total + " total";
+  
+  // Paginate filtered leads client-side
+  var totalPages = Math.ceil(total / leadsPerPage) || 1;
+  if (currentPage > totalPages) currentPage = totalPages;
+  var start = (currentPage - 1) * leadsPerPage;
+  var pageLeads = filtered.slice(start, start + leadsPerPage);
+  
+  // Group by severity
+  var groups = { critical: [], high: [], medium: [] };
+  for (var l of pageLeads) {
+    var s = parseInt(l.score) || 50;
+    if (s < 30) groups.critical.push(l);
+    else if (s < 50) groups.high.push(l);
+    else groups.medium.push(l);
+  }
+  
+  var el = document.getElementById("leads");
+  el.innerHTML = '<div></div>';
+  var wrapper = el.firstChild;
+  
+  function renderGroup(label, items, color, bg, icon) {
+    if (!items.length) return;
+    wrapper.innerHTML += '<div style="padding:6px 0 2px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:'+color+';">'+(icon?icon+' ':'')+label+' ('+items.length+')</div>';
+    for (var l of items) {
+      var sev = getSeverity(l.score);
+      var domain = l.domain || '(no domain)';
+      wrapper.innerHTML += '<div class="lead-card'+(l.outreach_sent && !l.bounced?' emailed':'')+(l.bounced?' bounced':'')+'" onclick="showLead('+l.id+')" title="'+(l.name||'').replace(/"/g,'&quot;')+'"><div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px"><div class="lead-name">'+domain+(l.outreach_sent?' <span style="color:#50C878;font-size:12px">📧</span>':'')+(l.bounced?' <span style="color:#ff4444;font-size:12px">⛔</span>':'')+'</div></div><span style="font-size:11px;padding:2px 8px;border-radius:4px;font-weight:600;color:'+sev.color+';background:'+sev.bg+';">'+l.score+'</span></div>';
+    }
+  }
+  
+  renderGroup("Critical", groups.critical, "#ff4444", "rgba(255,68,68,0.1)", "");
+  renderGroup("High", groups.high, "#FF9800", "rgba(255,152,0,0.1)", "");
+  renderGroup("Medium", groups.medium, "#FFB74D", "rgba(255,183,77,0.05)", "");
+  
+  if (!pageLeads.length) el.innerHTML = '<div class="empty-state">No leads match filters.</div>';
+  
+  // Pagination
+  var pp = document.getElementById('lead-pages');
+  if (pp) {
+    pp.style.display = 'flex';
+    pp.style.flexWrap = 'wrap';
+    pp.style.justifyContent = 'center';
+    pp.style.gap = '4px';
+    pp.style.padding = '0 4px';
+    var ph = '';
+    ph += '<span onclick="changePage(' + (currentPage - 1) + ')" style="padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;color:' + (currentPage <= 1 ? '#333' : '#00E5FF') + ';border:1px solid ' + (currentPage <= 1 ? 'transparent' : 'rgba(0,229,255,0.3)') + ';border-radius:6px;' + (currentPage <= 1 ? 'pointer-events:none;opacity:0.3' : '') + '">Prev</span>';
+    var s = Math.max(1, currentPage - 1);
+    var e = Math.min(totalPages, currentPage + 1);
+    if (s > 1) { ph += '<span onclick="changePage(1)" style="padding:6px 10px;cursor:pointer;font-size:12px;border-radius:6px;border:1px solid rgba(0,229,255,0.2);color:#8b949e;">1</span>'; if (s > 2) ph += '<span style="padding:6px 4px;font-size:12px;color:#555">...</span>'; }
+    for (var pi = s; pi <= e; pi++) {
+      ph += '<span onclick="changePage(' + pi + ')" style="padding:6px 10px;cursor:pointer;font-size:12px;font-weight:600;border-radius:6px;border:1px solid ' + (pi === currentPage ? '#00E5FF' : 'rgba(0,229,255,0.2)') + ';' + (pi === currentPage ? 'background:rgba(0,229,255,0.15);color:#00E5FF;' : 'color:#8b949e;') + '">' + pi + '</span>';
+    }
+    if (e < totalPages) { if (e < totalPages - 1) ph += '<span style="padding:6px 4px;font-size:12px;color:#555">...</span>'; ph += '<span onclick="changePage(' + totalPages + ')" style="padding:6px 10px;cursor:pointer;font-size:12px;border-radius:6px;border:1px solid rgba(0,229,255,0.2);color:#8b949e;">' + totalPages + '</span>'; }
+    ph += '<span onclick="changePage(' + (currentPage + 1) + ')" style="padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;color:' + (currentPage >= totalPages ? '#333' : '#00E5FF') + ';border:1px solid ' + (currentPage >= totalPages ? 'transparent' : 'rgba(0,229,255,0.3)') + ';border-radius:6px;' + (currentPage >= totalPages ? 'pointer-events:none;opacity:0.3' : '') + '">Next</span>';
+    pp.innerHTML = ph;
+  }
+  
+  if (map) plotLeads(leads);
+  if (_cardTabsLoaded['calls']) renderCalls();
+}
+
+function changePage(p) {
+  if (p < 1) return;
+  currentPage = p;
+  // Don't call load() — just re-render with current data
+  // All leads are already in _allLeads from the last load()
+  var filtered = _allLeads.filter(function(l) { 
+    return (parseInt(l.score) || 50) < 65 && (l.email || l.phone);
+  });
+  filtered.sort(function(a, b) { return (parseInt(a.score) || 50) - (parseInt(b.score) || 50); });
+  var total = filtered.length;
+  var totalPages = Math.ceil(total / leadsPerPage) || 1;
+  if (currentPage > totalPages) currentPage = totalPages;
+  var start = (currentPage - 1) * leadsPerPage;
+  var pageLeads = filtered.slice(start, start + leadsPerPage);
+  // Re-render leads
+  var el = document.getElementById("leads");
+  el.innerHTML = '<div></div>';
+  var wrapper = el.firstChild;
+  var groups = { critical: [], high: [], medium: [] };
+  for (var l of pageLeads) {
+    var s = parseInt(l.score) || 50;
+    if (s < 30) groups.critical.push(l);
+    else if (s < 50) groups.high.push(l);
+    else groups.medium.push(l);
+  }
+  function renderGroup2(label, items, color, bg, icon) {
+    if (!items.length) return;
+    wrapper.innerHTML += '<div style="padding:6px 0 2px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:'+color+';">'+(icon?icon+' ':'')+label+' ('+items.length+')</div>';
+    for (var l of items) {
+      var sev = getSeverity(l.score);
+      var domain = l.domain || '(no domain)';
+      wrapper.innerHTML += '<div class="lead-card'+(l.outreach_sent && !l.bounced?' emailed':'')+(l.bounced?' bounced':'')+'" onclick="showLead('+l.id+')" title="'+(l.name||'').replace(/"/g,'&quot;')+'"><div style="flex:1;min-width:0;display:flex;align-items:center;gap:6px"><div class="lead-name">'+domain+(l.outreach_sent?' <span style="color:#50C878;font-size:12px">📧</span>':'')+(l.bounced?' <span style="color:#ff4444;font-size:12px">⛔</span>':'')+'</div></div><span style="font-size:11px;padding:2px 8px;border-radius:4px;font-weight:600;color:'+sev.color+';background:'+sev.bg+';">'+l.score+'</span></div>';
+    }
+  }
+  renderGroup2("Critical", groups.critical, "#ff4444", "rgba(255,68,68,0.1)", "");
+  renderGroup2("High", groups.high, "#FF9800", "rgba(255,152,0,0.1)", "");
+  renderGroup2("Medium", groups.medium, "#FFB74D", "rgba(255,183,77,0.05)", "");
+  if (!pageLeads.length) el.innerHTML = '<div class="empty-state">No leads match filters.</div>';
+  document.getElementById("lead-count").textContent = total + " total";
+  // Re-render pagination
+  var pp = document.getElementById('lead-pages');
+  if (pp) {
+    var ph = '';
+    ph += '<span onclick="changePage(' + (currentPage - 1) + ')" style="padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;color:' + (currentPage <= 1 ? '#333' : '#00E5FF') + ';border:1px solid ' + (currentPage <= 1 ? 'transparent' : 'rgba(0,229,255,0.3)') + ';border-radius:6px;' + (currentPage <= 1 ? 'pointer-events:none;opacity:0.3' : '') + '">Prev</span>';
+    var s = Math.max(1, currentPage - 1);
+    var e = Math.min(totalPages, currentPage + 1);
+    if (s > 1) { ph += '<span onclick="changePage(1)" style="padding:6px 10px;cursor:pointer;font-size:12px;border-radius:6px;border:1px solid rgba(0,229,255,0.2);color:#8b949e;">1</span>'; if (s > 2) ph += '<span style="padding:6px 4px;font-size:12px;color:#555">...</span>'; }
+    for (var pi = s; pi <= e; pi++) {
+      ph += '<span onclick="changePage(' + pi + ')" style="padding:6px 10px;cursor:pointer;font-size:12px;font-weight:600;border-radius:6px;border:1px solid ' + (pi === currentPage ? '#00E5FF' : 'rgba(0,229,255,0.2)') + ';' + (pi === currentPage ? 'background:rgba(0,229,255,0.15);color:#00E5FF;' : 'color:#8b949e;') + '">' + pi + '</span>';
+    }
+    if (e < totalPages) { if (e < totalPages - 1) ph += '<span style="padding:6px 4px;font-size:12px;color:#555">...</span>'; ph += '<span onclick="changePage(' + totalPages + ')" style="padding:6px 10px;cursor:pointer;font-size:12px;border-radius:6px;border:1px solid rgba(0,229,255,0.2);color:#8b949e;">' + totalPages + '</span>'; }
+    ph += '<span onclick="changePage(' + (currentPage + 1) + ')" style="padding:6px 12px;cursor:pointer;font-size:12px;font-weight:600;color:' + (currentPage >= totalPages ? '#333' : '#00E5FF') + ';border:1px solid ' + (currentPage >= totalPages ? 'transparent' : 'rgba(0,229,255,0.3)') + ';border-radius:6px;' + (currentPage >= totalPages ? 'pointer-events:none;opacity:0.3' : '') + '">Next</span>';
+    pp.innerHTML = ph;
+  }
+}
+
+// === CALLS TAB ===
+var callsPage = 1;
+var callsPerPage = 40;
+var _allLeads = [];
+var _allLeadsById = {};
+
+function renderCalls() {
+  var phoneLeads = _allLeads.filter(function(l) { return l.phone && l.phone !== 'None' && l.phone !== 'null'; });
+  var countEl = document.getElementById('calls-count');
+  if (countEl) countEl.textContent = phoneLeads.length ? '(' + phoneLeads.length + ')' : '';
+  var totalEl = document.getElementById('calls-total');
+  if (totalEl) totalEl.textContent = phoneLeads.length + ' leads with phone numbers';
+
+  var el = document.getElementById('calls');
+  if (!el) return;
+  if (!phoneLeads.length) {
+    el.innerHTML = '<div class="empty-state">No leads with phone numbers yet.</div>';
+    document.getElementById('call-pages').innerHTML = '';
+    return;
+  }
+
+  var total = phoneLeads.length;
+  var totalPages = Math.ceil(total / callsPerPage) || 1;
+  if (callsPage > totalPages) callsPage = totalPages;
+  var start = (callsPage - 1) * callsPerPage;
+  var page = phoneLeads.slice(start, start + callsPerPage);
+
+  el.innerHTML = '';
+  for (var l of page) {
+    var sev = getSeverity(l.score);
+    el.innerHTML += '<div class="lead-card" onclick="showLead(' + l.id + ')"><div style="flex:1"><div class="lead-name">📞 ' + l.domain + ' · ' + l.phone + '</div></div><span style="font-size:11px;padding:2px 8px;border-radius:4px;font-weight:600;color:' + sev.color + ';background:' + sev.bg + ';">' + l.score + '</span></div>';
+  }
+
+  var pp = document.getElementById('call-pages');
+  if (pp) {
+    var ph = '';
+    ph += '<span onclick="changeCallPage(' + (callsPage - 1) + ')" style="padding:4px 10px;cursor:pointer;font-size:11px;color:' + (callsPage <= 1 ? '#333' : '#8b949e') + ';' + (callsPage <= 1 ? 'pointer-events:none' : '') + '">«</span>';
+    var s = Math.max(1, callsPage - 2);
+    var e = Math.min(totalPages, callsPage + 2);
+    if (s > 1) ph += '<span style="padding:4px 6px;font-size:11px;color:#333">...</span>';
+    for (var pi = s; pi <= e; pi++) {
+      ph += '<span onclick="changeCallPage(' + pi + ')" style="padding:4px 10px;cursor:pointer;font-size:11px;border-radius:4px;' + (pi === callsPage ? 'background:rgba(0,229,255,0.15);color:#00E5FF;font-weight:600' : 'color:#8b949e') + ';">' + pi + '</span>';
+    }
+    if (e < totalPages) ph += '<span style="padding:4px 6px;font-size:11px;color:#333">...</span>';
+    ph += '<span onclick="changeCallPage(' + (callsPage + 1) + ')" style="padding:4px 10px;cursor:pointer;font-size:11px;color:' + (callsPage >= totalPages ? '#333' : '#8b949e') + ';' + (callsPage >= totalPages ? 'pointer-events:none' : '') + '">»</span>';
+    pp.innerHTML = ph;
+  }
+}
+
+function changeCallPage(p) {
+  if (p < 1) return;
+  callsPage = p;
+  renderCalls();
+}
+
+async function loadCalls() {
+  // Fetch ALL leads to find phone numbers (not just current page)
+  try {
+    var allData = await fetch(API+"/leads?limit=9999&page=1").then(function(r){return r.json()});
+    var allLeads = allData.leads || [];
+    // Update _allLeadsById with all leads for modal lookup
+    for (var l of allLeads) _allLeadsById[l.id] = l;
+    _allLeads = allLeads;
+  } catch(e) {}
+  renderCalls();
+}
+
+async function showLead(id) {
+  var l = (_allLeadsById && _allLeadsById[id]) || _allLeads.find(function(x) { return x.id === id; }) || {};
+  var sev = getSeverity(l.score);
+  var h = '<span class="close" onclick="closeModal()">&times;</span>';
+  h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;">';
+  h += '<h2 style="margin:0;font-size:16px;">'+(l.domain||'Unknown')+'</h2>';
+  if (l.score) h += '<span style="font-size:12px;padding:3px 10px;border-radius:6px;font-weight:700;color:'+sev.color+';background:'+sev.bg+';">'+sev.label+' '+l.score+'/100</span>';
+  h += '</div>';
+  h += '<div style="color:#8b949e;font-size:12px;margin-bottom:12px;line-height:1.4;">'+(l.name||'No name available')+'</div>';
+  
+  // Grid: Domain, Email, Phone
+  h += '<div class="modal-grid" style="grid-template-columns:1fr 1fr 1fr;">';
+  h += '<div><div class="label">Domain</div><div class="val"><a href="https://'+l.domain+'" target="_blank">'+(l.domain||'—')+'</a></div></div>';
+  h += '<div><div class="label">Email</div><div class="val">'+(l.email ? '<a href="mailto:'+l.email+'">'+l.email+'</a>' : '<span style="color:#555;">—</span>')+'</div></div>';
+  h += '<div><div class="label">Phone</div><div class="val">'+(l.phone ? '<a href="tel:'+l.phone+'">'+l.phone+'</a>' : '<span style="color:#555;">—</span>')+'</div></div>';
+  h += '</div>';
+  
+  // Grid: Status, Created, Last Outreach, Score
+  h += '<div class="modal-grid" style="grid-template-columns:1fr 1fr 1fr 1fr;">';
+  h += '<div><div class="label">Status</div><div class="val">'+(l.status||'<span style="color:#555;">—</span>')+'</div></div>';
+  h += '<div><div class="label">Created</div><div class="val">'+(l.created_at ? new Date(l.created_at).toLocaleDateString() : '<span style="color:#555;">—</span>')+'</div></div>';
+  h += '<div><div class="label">Last Outreach</div><div class="val">'+(l.last_outreach ? new Date(l.last_outreach).toLocaleDateString() : '<span style="color:#555;">Never</span>')+'</div></div>';
+  h += '<div><div class="label">Outreach Count</div><div class="val">'+(l.outreach_count||'0')+'</div></div>';
+  h += '</div>';
+
+  // Buttons
+  h += '<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px;">';
+  h += '<button onclick="rescanLead('+id+')" style="padding:10px 24px;background:rgba(0,229,255,0.1);border:1px solid #00E5FF;border-radius:8px;color:#00E5FF;cursor:pointer;font-size:12px;font-weight:600;">Rescan</button>';
+  h += '<button onclick="deleteLead('+id+')" style="padding:10px 24px;background:rgba(255,68,68,0.1);border:1px solid #ff4444;border-radius:8px;color:#ff4444;cursor:pointer;font-size:12px;">Delete</button></div>';
+
+  document.getElementById("modal-content").innerHTML = h;
+  document.getElementById("modal").classList.add("show");
+}
+
+
+function showScanProgress(label) {
+  var steps = ['Initializing','Connecting','Querying DNS','Checking TLS','Scanning ports','Analyzing headers','Checking breaches','Generating report'];
+  var i = 0;
+  document.getElementById('modal-content').innerHTML = '<div class="scanning-anim"><div class="title">' + label + '</div><div class="line"><div class="line-fill"></div></div><div class="detail" id="scan-status">' + steps[0] + '...</div></div>';
+  var iv = setInterval(function() {
+    i++;
+    if (i < steps.length) document.getElementById('scan-status').textContent = steps[i] + '...';
+    else clearInterval(iv);
+  }, 8000 / steps.length);
+  window._scanTimer = iv;
+}
+
+async function rescanLead(id) {
+  var lead = await fetch(API+"/leads/"+id+"/outreach").then(r => r.json());
+  var domain = lead.lead?.domain;
+  if (!domain) { showLead(id); return; }
+  showScanProgress('Rescanning ' + domain.split('.')[0]);
+  var audit = await fetch(API+"/tool", {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ name: "full_audit", args: { domain: domain } })
+  }).then(r => r.json()).catch(() => ({ error: "timeout" }));
+  var auditResult = audit.result || "No results";
+  var newScore = parseInt(auditResult.match(/Score[:\s]*(\d+)/i)?.[1] || "50");
+  var fetchEmail = fetch(API+"/tool", {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ name: "find_emails", args: { domain: domain } })
+  }).then(r => r.json()).catch(() => ({}));
+  var fetchContact = fetch(API+"/tool", {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ name: "scrape_contacts", args: { url: "https://"+domain } })
+  }).then(r => r.json()).catch(() => ({}));
+  var results = await Promise.all([fetchEmail, fetchContact]);
+  document.getElementById("scan-status").textContent = "Updating lead...";
+  // Preserve existing data that the rescan tools don't fetch
+  var existing = lead.lead || {};
+  var upd = {
+    id: id,
+    score: newScore,
+    findings: auditResult.slice(0, 5000),
+    linkedin: existing.linkedin || "",
+    facebook: existing.facebook || "",
+    owner: existing.owner || "",
+    notes: existing.notes || ""
+  };
+  // Preserve existing contact fields as fallbacks
+  if (existing.email) upd.email = existing.email;
+  if (existing.phone) upd.phone = existing.phone;
+  if (existing.address) upd.address = existing.address;
+  if (existing.city) upd.city = existing.city;
+  if (existing.state) upd.state = existing.state;
+  if (existing.zip) upd.zip = existing.zip;
+  try {
+    var ed = JSON.parse(results[0].result || "{}");
+    if (ed.best_email) upd.email = ed.best_email;
+    if (ed.phones && ed.phones.length) upd.phone = ed.phones[0];
+    if (ed.address) upd.address = ed.address;
+    if (ed.city) upd.city = ed.city;
+    if (ed.state) upd.state = ed.state;
+    if (ed.zip) upd.zip = ed.zip;
+    // Check for social links in email results
+    if (ed.social && ed.social.length) {
+      for (var s of ed.social) {
+        if (s.includes("linkedin.com") && !upd.linkedin) upd.linkedin = s;
+        if (s.includes("facebook.com") && !upd.facebook) upd.facebook = s;
+      }
+    }
+  } catch(e) {}
+  try {
+    var cd = JSON.parse(results[1].result || "{}");
+    if (cd.phone && !upd.phone) upd.phone = cd.phone;
+    if (cd.address && !upd.address) upd.address = cd.address;
+    if (cd.linkedin && !upd.linkedin) upd.linkedin = cd.linkedin;
+    if (cd.owner && !upd.owner) upd.owner = cd.owner;
+  } catch(e) {}
+  await fetch(API+"/leads/update", {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify(upd)
+  }).catch(() => {});
+  load();
+  showLead(id);
+}
+
+async function deleteLead(id) {
+  document.getElementById("modal").classList.remove("show");
+  await fetch(DATA + "/tool", {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ name: "bash", args: { command: "sqlite3 /data/nomen/nomen.db \"DELETE FROM leads WHERE id="+id+"\"" } })
+  }).catch(function(){});
+  load();
+}
+async function saveLead(id) {
+  var email = document.getElementById("ef_email").value.trim();
+  var phone = document.getElementById("ef_phone").value.trim();
+  var address = document.getElementById("ef_address").value.trim();
+  var linkedin = document.getElementById("ef_linkedin").value.trim();
+  var facebook = document.getElementById("ef_facebook").value.trim();
+  var notes = "";
+  if (linkedin) notes += "LinkedIn: " + linkedin + "\n";
+  if (facebook) notes += "Facebook: " + facebook + "\n";
+  await fetch(DATA + "/tool", {
+    method: "POST", headers: {"Content-Type":"application/json"},
+    body: JSON.stringify({ name: "bash", args: { command: "sqlite3 /data/nomen/nomen.db \"UPDATE leads SET email='" + email.replace(/'/g,"''") + "',phone='" + phone.replace(/'/g,"''") + "',address='" + address.replace(/'/g,"''") + "',notes='" + notes.replace(/'/g,"''") + "',updated_at=datetime('now') WHERE id=" + id + "\"" } })
+  }).catch(function(){});
+  closeModal();
+  load();
+}
+function closeModal() { document.getElementById("modal").classList.remove("show"); }
+function toggleAddForm() {
+  var f = document.getElementById("add-form");
+  f.style.display = f.style.display === "none" ? "block" : "none";
+  if (f.style.display === "block") loadBizTypes();
+}
+function togglePreview(el) {
+  // Defensive: author intent was "toggle the next sibling's visibility".
+  // The preview <span> lives inside a flex container; the body div is its
+  // parent's next sibling (NOT the span's own next sibling). Walk up one level
+  // and bail if neither parent nor sibling exist so a stray click never throws.
+  var parent = el && el.parentElement;
+  if (!parent) return;
+  var target = parent.nextElementSibling;
+  if (!target) return;
+  target.style.display = target.style.display === "none" ? "block" : "none";
+}
+async function addBizType() {
+  var input = document.getElementById("new-biztype");
+  var val = input.value.trim().toLowerCase();
+  if (!val) return;
+  var existing = await fetch(DATA + "/config").then(r => r.json());
+  var types = (existing.business_types || "").split(",").map(t => t.trim()).filter(Boolean);
+  if (types.includes(val)) { input.value = ""; return; }
+  types.push(val);
+  await fetch(DATA + "/config", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ key: "business_types", value: types.join(", ") }) });
+  input.value = "";
+  loadBizTypes();
+}
+async function removeBizType(t) {
+  var existing = await fetch(DATA + "/config").then(r => r.json());
+  var types = (existing.business_types || "").split(",").map(x => x.trim()).filter(Boolean).filter(x => x !== t);
+  await fetch(DATA + "/config", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify({ key: "business_types", value: types.join(", ") }) });
+  loadBizTypes();
+}
+function exportCSV(type){
+  var el=document.getElementById('inline-'+type);
+  if(!el)return;
+  var rows=[];
+  var items=el.querySelectorAll('.inline-item');
+  for(var i=0;i<items.length;i++){
+    var nm=items[i].querySelector('.nm');
+    var ml=items[i].querySelector('.ml');
+    var mid=items[i].querySelector('[style*="color:#8b949e"]');
+    if(type==='sales') rows.push((nm?nm.textContent:'')+','+(mid?mid.textContent:'')+','+(ml?ml.textContent:''));
+    else rows.push((nm?nm.textContent:'')+','+(mid?mid.textContent:'')+','+(ml?ml.textContent:''));
+  }
+  var header=type==='sales'?'Name,Info,Status|Caps|Cooldown|Comm':'Salesman,Domain,Sale|Commission|Status';
+  var csv=header+'\n'+rows.join('\n');
+  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=type+'-export.csv';a.click();
+}
+var _cardTabsLoaded={};
+function switchCardTab(tab){
+  document.querySelectorAll('.card-tab').forEach(function(t){t.classList.remove('active')});
+  document.querySelectorAll('.card-pane').forEach(function(p){p.classList.remove('active')});
+  var tabs=document.querySelectorAll('.card-tab');
+  var idx=['leads','calls','sales','commissions'].indexOf(tab);
+  if(idx>=0&&tabs[idx])tabs[idx].classList.add('active');
+  var el=document.getElementById('card-'+tab);
+  if(el)el.classList.add('active');
+  if(!_cardTabsLoaded[tab]){_cardTabsLoaded[tab]=true;
+    if(tab==='calls')loadCalls();
+    if(tab==='sales')loadSalesTable();
+    if(tab==='commissions')loadCommTable();
+  }
+}
+function exportCSV2(type){
+  var el=type==='sales'?document.getElementById('sales-table'):document.getElementById('comm-table');
+  if(!el)return;
+  var rows=[];
+  var trs=el.querySelectorAll('tr');
+  for(var i=1;i<trs.length;i++){
+    var tds=trs[i].querySelectorAll('td');
+    var vals=[];
+    for(var j=0;j<tds.length;j++)vals.push(tds[j].textContent.trim());
+    rows.push(vals.join(','));
+  }
+  var header=type==='sales'?'Name,Email,Phone,Radius,Caps,Cooldown,Commission,Status':'Salesman,Domain,Product,Sale,%,Commission,Status,Closed';
+  var csv=header+'\n'+rows.join('\n');
+  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=type+'-export.csv';a.click();
+}
+async function loadSalesTable(){
+  var r=await fetch(API+'/sales-team').then(function(r){return r.json()});
+  var list=r.sales_team||[];
+  var html='<tr><th>Name</th><th>Email</th><th>Phone</th><th>Radius</th><th>Caps</th><th>Cooldown</th><th>Commission</th><th>Status</th></tr>';
+  if(!list.length)html+='<tr><td colspan="8" style="padding:20px;color:#555;text-align:center">No salesmen</td></tr>';
+  else for(var i=0;i<list.length;i++){var s=list[i];var st=s.active?'<span style="color:#50C878">Active</span>':'<span style="color:#d93025">Paused</span>';html+='<tr><td style="font-weight:600">'+s.name+'</td><td>'+s.email+'</td><td>'+(s.phone||'\u2014')+'</td><td>'+(s.radius_miles||50)+'mi</td><td>'+(s.leads_per_day||5)+'/d '+(s.leads_per_week||25)+'/w</td><td>'+(s.cooldown_hours||2)+'h</td><td>'+(s.commission_pct||10)+'%\u2192'+(s.quota_bonus_pct||15)+'%</td><td>'+st+'</td></tr>';}
+  document.getElementById('sales-table').innerHTML=html;
+}
+async function adminAddSalesman(){
+  var body={name:document.getElementById('s-name').value,email:document.getElementById('s-email').value,phone:document.getElementById('s-phone').value,radius_miles:parseInt(document.getElementById('s-radius').value)||50,leads_per_day:parseInt(document.getElementById('s-day').value)||5,leads_per_week:parseInt(document.getElementById('s-wk').value)||25,cooldown_hours:parseInt(document.getElementById('s-cool').value)||2,commission_pct:parseInt(document.getElementById('s-comm').value)||10};
+  if(!body.name||!body.email){document.getElementById('sales-msg').textContent='Name and email required';return}
+  var r=await fetch(API+'/sales-team/add',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)}).then(function(r){return r.json()});
+  document.getElementById('sales-msg').textContent=r.ok?'Added! Re-click tab to refresh.':'Failed';
+  loadSalesTable();
+}
+async function loadCommTable(){
+  var r=await fetch(API+'/sales/commissions').then(function(r){return r.json()});
+  var list=r.commissions||[];
+  var html='<tr><th>Salesman</th><th>Domain</th><th>Product</th><th>Sale</th><th>%</th><th>Commission</th><th>Status</th><th>Closed</th></tr>';
+  if(!list.length)html+='<tr><td colspan="8" style="padding:20px;color:#555;text-align:center">No commissions</td></tr>';
+  else for(var i=0;i<list.length;i++){var c=list[i];var sc=c.status==='paid'?'#50C878':(c.status==='confirmed'?'#1a73e8':'#FFBF00');html+='<tr><td>'+(c.salesman_name||'\u2014')+'</td><td>'+c.domain+'</td><td>'+c.product_tier+'</td><td>$'+(c.sale_amount||0).toLocaleString()+'</td><td>'+c.commission_pct+'%</td><td style="font-weight:600">$'+(c.commission_amount||0).toFixed(2)+'</td><td style="color:'+sc+'">'+c.status+'</td><td>'+(c.closed_at||'\u2014')+'</td></tr>';}
+  document.getElementById('comm-table').innerHTML=html;
+}
+async function loadBizTypes() {
+  var cfg;
+  try {
+    cfg = await fetch(DATA + "/config").then(function(r) { if(!r.ok) throw new Error('config '+r.status); return r.json(); });
+  } catch(e) {
+    console.warn('[NOMEN] loadBizTypes failed:', e.message);
+    return;
+  }
+  var types = (cfg.business_types || "").split(",").map(t => t.trim()).filter(Boolean);
+  var el = document.getElementById("biztypes");
+  if (!el) return;
+  el.innerHTML = types.map(t => '<span class="city-tag">' + t + ' <span class="del" onclick="removeBizType(\''+t+'\')">x</span></span> ').join("") || '<span style="color:#555;font-size:11px;">Add business types for VPS nomen to search</span>';
+}
+</script>
+</body>
+</html>

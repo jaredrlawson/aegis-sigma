@@ -1,0 +1,20 @@
+Package: aegis-sigma
+Version: 1.0.0
+Section: net
+Priority: optional
+Architecture: any
+Maintainer: AEGIS-SIGMA <team@aegis-sigma.com>
+Depends: libc6 (>= 2.31), libsqlite3-0, libgcc-s1, ca-certificates
+Recommends: wireguard, nginx
+Description: AEGIS-SIGMA Community Edition — Open-source web security firewall
+ Real-time web traffic classification engine with SIMD-optimized C inference,
+ LightGBM classifier, Isolation Forest anomaly detection, and Go gateway.
+ .
+ Features: IP blocking, challenge pages, honeypots, GeoIP enrichment,
+ lead management, email tools, and 10 security agent prompts.
+ .
+ Community tier: C Engine, Go Shield, Go Soul, Go GeoIP, Go Trap,
+ Go Bridge, Traffic Generator, 10 security agent MDs, training scripts.
+ .
+ Telemetry: Optional anonymized threat data collection to improve
+ model accuracy across the AEGIS-SIGMA network. Disable in .env.
