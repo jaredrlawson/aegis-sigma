@@ -1,6 +1,6 @@
-# AEGIS-SIGMA
+# AEGIS-SIGMA v5 Free
 
-Open-source web security firewall engine with SIMD-optimized C inference, LightGBM classifier, Isolation Forest anomaly detection, and Go gateway.
+Open-source web security platform with SIMD-optimized C inference, LightGBM classifier, Isolation Forest anomaly detection, and Go gateway.
 
 ## Quick Start
 
@@ -10,14 +10,13 @@ git clone https://github.com/jaredrlawson/aegis-sigma.git
 cd aegis-sigma
 
 # Install
-sudo dpkg -i aegis-sigma_1.0.0_arm64.deb
+sudo dpkg -i editions/free/aegis-sigma-v5-free_1.0.0-0_arm64.deb
 
 # Configure
-cp .env.example .env
-sudo ./scripts/setup.sh
+./scripts/setup.sh
 
 # Verify
-curl http://localhost:8086/  # C engine status
+curl http://localhost:8086/
 ```
 
 ## Architecture
@@ -44,25 +43,34 @@ Internet → Go Shield (:3000)
 | aegis-bridge | 8899 | Lead management API |
 | aegis-c-engine | 20129 | ML inference engine |
 
-## Configuration
+## SSH Log Tailing
 
-All settings via environment variables (`.env` file):
+No dashboard or CLI in the free version. Use SSH to monitor:
 
 ```bash
-# Your sites
-PRIMARY_SITE=https://your-site.com
+# Shield (classifier + blocks)
+ssh user@your-server "tail -f /var/log/aegis/shield_soul.log"
 
-# Backend origin
-BACKEND_URL=http://127.0.0.1:8081
+# C Engine (ML inference)
+ssh user@your-server "journalctl -u aegis-c -f"
 
-# Strike server
-STRIKE_URL=local  # or http://strike.aegis-sigma.com:8443
+# Bridge (lead management)
+ssh user@your-server "tail -f /var/log/aegis/bridge-go.log"
 
-# Email
-EMAIL_FROM=shield@your-site.com
+# Trap (honeypots)
+ssh user@your-server "journalctl -u aegis-trap -f"
 
-# LLM (for Teacher)
-LLM_BASE_URL=https://ai.aegis-sigma.com/v1
+# All services
+ssh user@your-server "journalctl -u aegis-shield-go -u aegis-soul -u aegis-c -u aegis-trap -f"
+```
+
+## Configuration
+
+All settings via `.env` file:
+
+```bash
+cp .env.example .env
+./scripts/setup.sh
 ```
 
 ## Docker
@@ -75,27 +83,39 @@ docker run -p 3000:3000 -p 8086:8086 aegis-sigma
 ## Training
 
 ```bash
-# Retrain models from brain.sqlite
 python3 training/retrain_models.py
-
-# Restart C engine to load new weights
 sudo systemctl restart aegis-c
 ```
 
-## Community vs Pro
+## Updates
 
-| Feature | Community | Pro |
-|---------|-----------|-----|
-| C Engine | ✅ | ✅ |
-| Go Shield | ✅ | ✅ |
-| Go Soul | ✅ | ✅ |
-| Go GeoIP | ✅ | ✅ |
-| Go Trap | ✅ | ✅ |
-| Go Bridge | ✅ (disabled) | ✅ |
-| Teacher LLM | ❌ | ✅ |
-| Active Learning | ❌ | ✅ |
-| Multi-Node Dashboard | ❌ | ✅ |
-| Agent Library (500+) | ❌ | ✅ |
+Setup wizard adds APT repo automatically:
+```bash
+apt update && apt upgrade aegis-sigma-v5-free
+```
+
+## What's Included (Free)
+
+- C Engine (30-feature ML inference, not pre-trained)
+- Go Shield (HTTP classifier + challenge pages)
+- Go Soul (Isolation Forest anomaly detection)
+- Go GeoIP (MaxMind IP enrichment)
+- Go Trap (honeypots + tarpit)
+- Go Bridge (lead management API, disabled by default)
+- Traffic generator
+- Training scripts
+
+## What's NOT Included (Pro only)
+
+- Go Auditor (integrity verification + monitoring)
+- Go Dashboard (admin UI)
+- Teacher LLM (real-time classification)
+- Active Learning pipeline
+- Multi-Node Dashboard
+- Agent Library (583 prompts)
+- Pre-trained models
+- Automated incident response
+- Monthly email reports
 
 ## License
 
