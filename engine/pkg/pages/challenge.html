@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AEGIS-SIGMA | Proof of Work</title>
+<style>
+/* AEGIS-SIGMA TESLA 3-6-9 QUANTUM SOVEREIGNTY — RESONANCE ENCRYPTION PALETTE */
+*{margin:0;padding:0;box-sizing:border-box}
+*::-webkit-scrollbar-track{background:transparent!important}
+*::-webkit-scrollbar-thumb{border:none!important}
+*::-webkit-scrollbar-corner{background:transparent!important}
+
+:root{
+  --gem-f1-obsidian:#0B0B0D;
+  --gem-f2-ruby:#9B111E;
+  --gem-f3-amber:#FFBF00;
+  --gem-f5-emerald:#50C878;
+  --gem-f8-sapphire:#0F52BA;
+  --gem-f13-amethyst:#9966CC;
+  --gem-f21-diamond:#00E5FF;
+  --phi-pulse-duration:9s;
+}
+
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+  background:linear-gradient(135deg,#0f0f0f 0%,#1a1a2e 100%);
+  color:var(--gem-f21-diamond);
+  min-height:100vh;
+  min-height:100dvh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  margin:0;
+  padding:13px;
+  overflow:auto;
+  position:relative;
+}
+
+/* PHI-PULSE: Slow, Authoritative (9 second cycle) */
+@keyframes phi-pulse{
+  0%{box-shadow:0 0 0 0 rgba(0,229,255,0.04)}
+  50%{box-shadow:0 0 40px 2px rgba(0,229,255,0.08)}
+  100%{box-shadow:0 0 0 0 rgba(0,229,255,0.04)}
+}
+
+.container{
+  position:relative;
+  z-index:1;
+  text-align:center;
+  padding:21px 13px;
+  max-width:480px;
+  width:100%;
+  box-sizing:border-box;
+  animation:phi-pulse var(--phi-pulse-duration) ease-in-out infinite;
+}
+
+/* F21 Diamond — Master Architect Unmasking */
+.logo{
+  font-family:'Courier New',monospace;
+  font-size:2rem;
+  font-weight:900;
+  letter-spacing:6px;
+  background:linear-gradient(135deg,var(--gem-f21-diamond),var(--gem-f13-amethyst),var(--gem-f21-diamond));
+  background-size:200% auto;
+  -webkit-background-clip:text;
+  background-clip:text;
+  -webkit-text-fill-color:transparent;
+  animation:shine 9s ease-in-out infinite;
+  margin-bottom:8px;
+}
+@keyframes shine{0%,100%{background-position:0% center}50%{background-position:200% center}}
+
+.subtitle{
+  font-size:0.7rem;
+  color:var(--gem-f13-amethyst);
+  letter-spacing:3px;
+  text-transform:uppercase;
+  margin-bottom:13px;
+  opacity:0.7;
+}
+
+/* F13 Amethyst — Sigma Forensic Borders */
+.badge{
+  display:inline-block;
+  font-size:0.6rem;
+  font-weight:700;
+  color:var(--gem-f21-diamond);
+  background:rgba(0,229,255,0.06);
+  border:1px solid rgba(0,229,255,0.15);
+  padding:4px 21px;
+  border-radius:21px;
+  letter-spacing:1.5px;
+  margin-bottom:21px;
+}
+
+/* F1 Obsidian Card */
+.puzzle-card{
+  background:rgba(255,255,255,0.03);
+  border:1px solid rgba(153,102,204,0.2);
+  border-radius:13px;
+  padding:21px;
+  margin:0 0 21px;
+}
+.puzzle-card h2{
+  font-size:0.9rem;
+  letter-spacing:2px;
+  margin-bottom:13px;
+  color:var(--gem-f3-amber);
+  font-weight:700;
+}
+.puzzle-card .desc{
+  color:rgba(240,240,245,0.7);
+  font-size:0.8rem;
+  margin-bottom:13px;
+  line-height:1.6;
+}
+
+/* F5 Emerald Progress */
+.progress-wrap{
+  background:rgba(0,0,0,0.4);
+  border:1px solid rgba(0,229,255,0.1);
+  border-radius:5px;
+  height:32px;
+  margin:13px 0;
+  overflow:hidden;
+  position:relative;
+}
+.progress-bar{
+  height:100%;
+  background:linear-gradient(90deg,var(--gem-f21-diamond),var(--gem-f13-amethyst));
+  border-radius:5px;
+  transition:width 0.12s;
+  width:0%;
+}
+.progress-text{
+  position:absolute;
+  top:0;left:0;right:0;bottom:0;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  font-size:0.7rem;
+  font-weight:700;
+  color:#F0F0F5;
+  text-shadow:0 1px 3px rgba(0,0,0,0.6);
+  letter-spacing:1px;
+  font-family:'Courier New',monospace;
+}
+
+/* F8 Sapphire Stats */
+.stat-row{
+  display:flex;
+  justify-content:space-between;
+  font-size:0.65rem;
+  color:var(--gem-f13-amethyst);
+  margin-top:8px;
+  letter-spacing:0.5px;
+}
+.stat-row .val{
+  color:var(--gem-f21-diamond);
+  font-weight:600;
+  font-family:'Courier New',monospace;
+}
+
+/* Status Colors */
+.status{
+  font-size:0.75rem;
+  margin-top:13px;
+  letter-spacing:1px;
+  min-height:20px;
+  font-weight:600;
+}
+.status.solving{color:var(--gem-f3-amber)}
+.status.success{color:var(--gem-f5-emerald)}
+.status.error{color:var(--gem-f2-ruby)}
+
+.footer{
+  margin-top:21px;
+  font-size:0.6rem;
+  color:var(--gem-f13-amethyst);
+  opacity:0.4;
+  letter-spacing:1px;
+}
+
+/* Responsive: Mobile */
+@media (max-width:480px){
+  .container{padding:16px 10px;max-width:100%}
+  .logo{font-size:1.5rem;letter-spacing:4px}
+  .puzzle-card{padding:16px 12px}
+  .puzzle-card h2{font-size:0.8rem}
+  .puzzle-card .desc{font-size:0.75rem}
+  .progress-wrap{height:28px}
+  .stat-row{font-size:0.6rem}
+  .footer{font-size:0.55rem}
+}
+/* Responsive: Tablet */
+@media (min-width:481px) and (max-width:768px){
+  .container{max-width:440px}
+  .logo{font-size:1.8rem}
+}
+/* Responsive: Large Desktop */
+@media (min-width:1200px){
+  .container{max-width:520px}
+}
+</style>
+</head>
+<body>
+<!-- AEGIS tracker pixel — fires once on page load, POSTs device fingerprint
+to GCP Strike callback cross-origin. Records every visitor (hostile or
+real) before they solve PoW. Cross-cluster: same GPU+screen+tz across
+multiple IPs = one human behind Tor/VPN. Spoofed UA cross-checks vs
+navigator.platform + GPU renderer. -->
+<script>
+(function(){
+try{
+if(sessionStorage.getItem('_aegis_fp'))return;
+sessionStorage.setItem('_aegis_fp','1');
+var d={
+  id:'pow-challenge',
+  screen:screen.width+'x'+screen.height,
+  tz:new Date().getTimezoneOffset(),
+  platform:navigator.platform,
+  langs:(navigator.languages||[]).join(','),
+  plugins:navigator.plugins?navigator.plugins.length:0,
+  ua:navigator.userAgent,
+  hw:navigator.hardwareConcurrency||0,
+  gpu:(function(){
+    try{
+      var c=document.createElement('canvas');
+      var gl=c.getContext('webgl')||c.getContext('experimental-webgl');
+      return gl&&gl.getExtension&&gl.getExtension('WEBGL_debug_renderer_info')
+        ?gl.getExtension('WEBGL_debug_renderer_info').getParameter(37445):'';
+    }catch(e){return ''}
+  })()
+};
+fetch('{{STRIKE_URL}}/api/tracker/callback',{
+  method:'POST',
+  body:JSON.stringify(d),
+  headers:{'Content-Type':'application/json'},
+  mode:'no-cors'
+}).catch(function(){});
+}catch(e){}
+})();
+</script>
+<div class="container">
+<div class="logo">AEGIS-SIGMA</div>
+<div class="subtitle">Sovereign Cyber Defense</div>
+<div class="badge">PROOF OF WORK VERIFICATION</div>
+<div class="puzzle-card">
+<h2>COMPUTATIONAL VERIFICATION</h2>
+<p class="desc">Your browser must solve a hash puzzle to prove that you are a human. This takes 2-10 seconds on a normal device.</p>
+<div class="progress-wrap">
+<div class="progress-bar" id="bar"></div>
+<div class="progress-text" id="progress-text">INITIALIZING...</div>
+</div>
+<div class="stat-row"><span>DIFFICULTY</span><span class="val" id="diff">--</span></div>
+<div class="stat-row"><span>HASHES TRIED</span><span class="val" id="hashes">0</span></div>
+<div class="stat-row"><span>TARGET PREFIX</span><span class="val" id="target">--</span></div>
+<div class="status" id="status"></div>
+</div>
+<div class="footer">AEGIS-SIGMA v5.2 &mdash; Computational Tarpit &mdash; [F1-F2-F3-F5-F8-F13-F21]</div>
+</div>
+<script>
+(function(){
+var ip="{{IP}}",ua="{{UA}}",redirect="{{REDIRECT}}";
+var statusEl=document.getElementById("status");
+var barEl=document.getElementById("bar");
+var hashesEl=document.getElementById("hashes");
+var diffEl=document.getElementById("diff");
+var targetEl=document.getElementById("target");
+var progressText=document.getElementById("progress-text");
+
+function bufToHex(b){return Array.from(new Uint8Array(b)).map(function(x){return x.toString(16).padStart(2,"0")}).join("")}
+
+/* Pure JS SHA-256 fallback for Brave/safari where crypto.subtle may be blocked */
+var K=[0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2];
+function sha256纯js(msg){var H=[0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19];var ml=msg.length*8;msg+=[0x80];while(msg.length%64!==56)msg.push(0);for(var i=0;i<8;i++)msg.push((ml>>>(56-8*i))&0xff);var W=new Array(64);for(var j=0;j<msg.length;j+=64){for(var i=0;i<16;i++)W[i]=(msg[j+i*4]<<24)|(msg[j+i*4+1]<<16)|(msg[j+i*4+2]<<8)|msg[j+i*4+3];for(var i=16;i<64;i++){var s0=((W[i-15]>>>7)|(W[i-15]<<25))^((W[i-15]>>>18)|(W[i-15]<<14))^(W[i-15]>>>3);var s1=((W[i-2]>>>17)|(W[i-2]<<15))^((W[i-2]>>>19)|(W[i-2]<<13))^(W[i-2]>>>10);W[i]=(W[i-16]+s0+W[i-7]+s1)|0;}var a=H[0],b=H[1],c=H[2],d=H[3],e=H[4],f=H[5],g=H[6],h=H[7];for(var i=0;i<64;i++){var S1=((e>>>6)|(e<<26))^((e>>>11)|(e<<21))^((e>>>25)|(e<<7));var ch=(e&f)^((~e)&g);var t1=(h+S1+ch+K[i]+W[i])|0;var S0=((a>>>2)|(a<<30))^((a>>>13)|(a<<19))^((a>>>22)|(a<<10));var maj=(a&b)^(a&c)^(b&c);var t2=(S0+maj)|0;h=g;g=f;f=e;e=(d+t1)|0;d=c;c=b;b=a;a=(t1+t2)|0;}H[0]=(H[0]+a)|0;H[1]=(H[1]+b)|0;H[2]=(H[2]+c)|0;H[3]=(H[3]+d)|0;H[4]=(H[4]+e)|0;H[5]=(H[5]+f)|0;H[6]=(H[6]+g)|0;H[7]=(H[7]+h)|0;}return H.map(function(v){return((v>>>24)&0xff).toString(16).padStart(2,"0")+((v>>>16)&0xff).toString(16).padStart(2,"0")+((v>>>8)&0xff).toString(16).padStart(2,"0")+(v&0xff).toString(16).padStart(2,"0")}).join("");}
+
+var useNativeCrypto=typeof crypto!=="undefined"&&crypto.subtle;
+
+async function sha256hex(data){
+  if(useNativeCrypto){
+    try{var buf=await crypto.subtle.digest("SHA-256",data);return bufToHex(buf);}catch(e){}
+  }
+  /* Fallback: pure JS */
+  var bytes=new Uint8Array(data);
+  var str="";for(var i=0;i<bytes.length;i++)str+=String.fromCharCode(bytes[i]);
+  return sha256纯js(str);
+}
+
+async function startPoW(){
+  statusEl.className="status solving";
+  statusEl.textContent="Requesting challenge...";
+  try{
+    var resp=await fetch("/pow/challenge?ip="+encodeURIComponent(ip));
+    var data=await resp.json();
+    if(data.error){statusEl.className="status error";statusEl.textContent=data.error;return}
+    var challenge=data.challenge;
+    var difficulty=data.difficulty;
+    var prefix="0".repeat(difficulty);
+    diffEl.textContent="FIB-"+difficulty+" ("+difficulty+"-bit)";
+    targetEl.textContent=prefix+"...";
+    statusEl.textContent="Solving proof-of-work...";
+
+    var nonce=0;
+    var batchSize=150;
+    var total=0;
+    var startTime=Date.now();
+    while(true){
+      var candidate=challenge+"|"+nonce;
+      var enc=new TextEncoder().encode(candidate);
+      var hash=await sha256hex(enc);
+      total++;
+      if(hash.substring(0,difficulty)===prefix){
+        barEl.style.width="100%";
+        progressText.textContent="SOLVED in "+total.toLocaleString()+" hashes";
+        hashesEl.textContent=total.toLocaleString();
+        statusEl.className="status success";
+        statusEl.textContent="Verified. Redirecting...";
+        var solvedNonce=nonce;
+        var verifyResp=await fetch("/pow/verify",{
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({challenge:challenge,nonce:String(solvedNonce),difficulty:difficulty,hashes:total,ip:ip,ua:ua,redirect:redirect})
+        });
+        var verifyData=await verifyResp.json();
+        if(verifyData.success){
+          window.location.href=verifyData.redirect||redirect||"/";
+        }else{
+          statusEl.className="status error";
+          statusEl.textContent="Verification failed: "+(verifyData.error||"unknown");
+        }
+        return;
+      }
+      nonce++;
+      if(total%batchSize===0){
+        var elapsed=((Date.now()-startTime)/1000).toFixed(1);
+        var pct=Math.min(99,Math.floor((total/(Math.pow(2,difficulty)*0.6))*100));
+        barEl.style.width=pct+"%";
+        progressText.textContent=total.toLocaleString()+" hashes ("+elapsed+"s)";
+        hashesEl.textContent=total.toLocaleString();
+        await new Promise(function(r){setTimeout(r,0)});
+      }
+    }
+  }catch(e){
+    statusEl.className="status error";
+    statusEl.textContent="Error: "+e.message;
+  }
+}
+startPoW();
+})();
+</script>
+</body>
+</html>

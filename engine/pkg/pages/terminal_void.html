@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TERMINAL VOID | Aegis-SIGMA</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#000;color:#ff1744;font-family:'Courier New',monospace;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.container{position:relative;z-index:1;text-align:center;padding:40px;max-width:600px}
+.void-icon{font-size:5rem;color:#ff1744;animation:pulse 1.5s ease-in-out infinite;margin-bottom:20px}
+@keyframes pulse{0%%,100%%{opacity:1;transform:scale(1)}50%%{opacity:0.5;transform:scale(1.1)}}
+.title{font-size:1.8rem;letter-spacing:8px;margin-bottom:10px;color:#ff1744}
+.subtitle{font-size:0.8rem;color:#ff6d00;letter-spacing:4px;margin-bottom:30px}
+.log-box{background:rgba(255,0,0,0.05);border:1px solid rgba(255,0,0,0.3);border-radius:8px;padding:20px;text-align:left;font-size:0.7rem;line-height:1.8;color:#ff6d00;margin:20px 0}
+.log-line{margin:2px 0}.log-line::before{content:'> ';color:#ff1744}
+.case{color:#ff1744;font-weight:bold;font-size:0.9rem;margin:15px 0}
+.footer{font-size:0.6rem;color:#ff6d00;opacity:0.4;margin-top:20px}
+</style>
+</head>
+<body>
+<div class="container">
+<div class="void-icon">&#9760;</div>
+<div class="title">TERMINAL VOID</div>
+<div class="subtitle">YOUR CONNECTION HAS BEEN DESTROYED</div>
+<div class="case">Case: %s</div>
+<div class="log-box">
+<div class="log-line">IP: %s</div>
+<div class="log-line">Reason: %s</div>
+<div class="log-line">Classification: TERMINAL_VOID</div>
+<div class="log-line">Status: PERMANENTLY BANNED</div>
+<div class="log-line">iptables: DROP active</div>
+<div class="log-line">GCP Strike: dispatched</div>
+<div class="log-line">FBI Evidence: logged</div>
+<div class="log-line">All future connections: DISCARDED</div>
+</div>
+<div class="footer">AEGIS-SIGMA Terminal Void | No mercy. No appeal.</div>
+</div>
+</body>
+</html>

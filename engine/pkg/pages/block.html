@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Aegis-SIGMA | Access Denied</title>
+<style>
+:root{--obsidian:#0B0B0D;--ruby:#CF222E;--amber:#FFBF00;--emerald:#50C878;--diamond:#00E5FF;--amethyst:#9966CC;--white:#F0F0F5;--text-secondary:#8b949e}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--obsidian);background-image:linear-gradient(rgba(11,11,13,0.85),rgba(11,11,13,0.95)),repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,229,255,0.03) 2px,rgba(0,229,255,0.03) 4px);color:var(--diamond);font-family:'Inter',-apple-system,sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative}
+#matrix-bg{position:fixed;top:0;left:0;width:100%%;height:100%%;z-index:0;opacity:0.08;pointer-events:none}
+.scanlines{position:fixed;top:0;left:0;width:100%%;height:100%%;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,0.15) 2px,rgba(0,0,0,0.15) 4px);z-index:0;pointer-events:none}
+.container{position:relative;z-index:1;text-align:center;padding:40px 20px;max-width:600px;width:100%%}
+.logo{font-family:'Courier New',monospace;font-size:2rem;font-weight:900;letter-spacing:6px;color:var(--ruby);margin-bottom:8px}
+.subtitle{font-size:0.7rem;color:var(--amethyst);letter-spacing:3px;text-transform:uppercase;margin-bottom:30px;opacity:0.8}
+.alert-banner{background:rgba(207,34,46,0.15);border:1px solid rgba(207,34,46,0.4);border-radius:12px;padding:20px;margin-bottom:25px}
+.alert-icon{font-size:3rem;margin-bottom:10px}
+.alert-text{font-size:1.2rem;font-weight:700;color:var(--ruby);letter-spacing:2px}
+.info-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:20px 0;text-align:left}
+.info-item{background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.15);border-radius:8px;padding:12px}
+.info-label{font-size:0.65rem;color:var(--amethyst);letter-spacing:1px;text-transform:uppercase;margin-bottom:4px}
+.info-value{font-size:0.85rem;color:var(--white);font-family:'Courier New',monospace;word-break:break-all}
+.legal{background:rgba(255,191,0,0.08);border:1px solid rgba(255,191,0,0.2);border-radius:8px;padding:15px;margin:20px 0;font-size:0.75rem;color:var(--amber);text-align:left;line-height:1.6}
+.pillars{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:15px 0}
+.pillar{background:rgba(0,229,255,0.05);border:1px solid rgba(0,229,255,0.15);border-radius:6px;padding:8px;font-size:0.6rem;color:var(--emerald)}
+.footer{margin-top:25px;font-size:0.6rem;color:var(--amethyst);opacity:0.4;letter-spacing:1px}
+</style>
+</head>
+<body>
+<canvas id="matrix-bg"></canvas>
+<div class="scanlines"></div>
+<div class="container">
+<div class="logo">AEGIS-SIGMA</div>
+<div class="subtitle">SOVEREIGN CYBER DEFENSE</div>
+<div class="alert-banner">
+<div class="alert-icon">&#9888;</div>
+<div class="alert-text">ACCESS TERMINATED</div>
+</div>
+<div class="info-grid">
+<div class="info-item"><div class="info-label">Case ID</div><div class="info-value">%s</div></div>
+<div class="info-item"><div class="info-label">Threat Source</div><div class="info-value">%s</div></div>
+<div class="info-item"><div class="info-label">Timestamp</div><div class="info-value">%s</div></div>
+<div class="info-item"><div class="info-label">System Status</div><div class="info-value" style="color:%s">ACTIVE LOCKDOWN</div></div>
+<div class="info-item"><div class="info-label">AI Models Engaged</div><div class="info-value">3/3 (Trinity God Mode)</div></div>
+<div class="info-item"><div class="info-label">Actor</div><div class="info-value">%s</div></div>
+</div>
+<div class="info-item" style="margin:15px 0"><div class="info-label">Threat Classification</div><div class="info-value" style="font-size:0.7rem">Reason: %s | Consensus: %s</div></div>
+<div class="pillars">
+<div class="pillar">Shield 20B</div><div class="pillar">Soul 120B</div><div class="pillar">Auditor</div>
+<div class="pillar">C-Engine</div><div class="pillar">Forensic</div><div class="pillar">Strike</div>
+<div class="pillar">Void</div><div class="pillar">Intel</div><div class="pillar">Clustering</div>
+</div>
+<div class="legal">Your connection has been intercepted and analyzed by AEGIS-SIGMA Sovereign Cyber Defense.<br>All activities have been logged with 120B forensic unmasking capabilities.<br>This incident has been reported to the system administrator.<br><strong>Further attempts will result in permanent global blacklisting across all protected sites.</strong></div>
+<div class="footer">&copy; 2026 AEGIS-SIGMA | Tesla 3-6-9 Resonance | Fibonacci Defense Lattice</div>
+</div>
+</body>
+</html>

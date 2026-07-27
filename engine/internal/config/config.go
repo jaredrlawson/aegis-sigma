@@ -1,0 +1,287 @@
+package config
+
+import (
+	"database/sql"
+	"os"
+	"strings"
+	"sync"
+	"time"
+
+	_ "modernc.org/sqlite"
+	"gopkg.in/yaml.v3"
+)
+
+const (
+	HealthToken = "" // Set via vault or config.yaml
+	CEngineHost       = "127.0.0.1"
+	CEnginePort       = 20129
+	CEngineTimeout    = 10000 * time.Millisecond
+	GeoIPURL          = "http://127.0.0.1:4040"
+	BrainDB           = "/mnt/data/databases/brain.sqlite"
+	NomenDB           = "/mnt/data/databases/nomen.db"
+	EvidenceDir       = "/var/log/aegis"
+	EvidenceFile      = "/var/log/aegis/fbi-evidence.jsonl"
+	LiveFile          = "/var/log/aegis/live_events.jsonl"
+	BlockLog          = "/var/log/aegis/aegis-shield.log"
+	IptablesChain     = "AEGIS_VOID"
+	VaultKeyPath      = "/etc/aegis-sigma/vault/openrouter.key"
+	LLMBaseURL        = "https://ai.aegis-sigma.com/v1"
+	LLModelShield     = "gc/gemini-3-flash-preview"
+	LLModelSoul       = "nvidia/z-ai/glm-5.1"
+	EnsembleThreshold = 0.618
+	WeightAlpha       = 0.55
+	WeightBeta        = 0.34
+	WeightGamma       = 0.11
+	RateLimitPerMin   = 30
+	CacheTTL          = 300 * time.Second
+	PHI               = 1.618033988749895
+	ShieldPort        = 3000
+	SoulPort          = 3007
+	TrapPort          = 3001
+	GeoIPPort         = 4040
+	ConfigPath        = "/etc/aegis-sigma/config.yaml"
+	VaultDir          = "/etc/aegis-sigma/vault"
+)
+
+// YamlConfig mirrors config.yaml structure.
+type YamlConfig struct {
+	Network struct {
+		WireguardIP string `yaml:"wireguard_ip"`
+	} `yaml:"network"`
+	LLM struct {
+		BaseURL string `yaml:"base_url"`
+	} `yaml:"llm"`
+	Email struct {
+		FromAddress string `yaml:"from_address"`
+		FromName    string `yaml:"from_name"`
+	} `yaml:"email"`
+	Stripe struct {
+		SuccessURL string `yaml:"success_url"`
+		CancelURL  string `yaml:"cancel_url"`
+	} `yaml:"stripe"`
+	SMTP struct {
+		Host string `yaml:"host"`
+		Port int    `yaml:"port"`
+		From string `yaml:"from"`
+	} `yaml:"smtp"`
+	Strike struct {
+		URL string `yaml:"url"`
+	} `yaml:"strike"`
+	Landing struct {
+		URL string `yaml:"url"`
+	} `yaml:"landing"`
+	Tier     string `yaml:"tier"`
+	Features struct {
+		TeacherEnabled bool `yaml:"teacher_enabled"`
+		AuditorEnabled bool `yaml:"auditor_enabled"`
+		BridgeEnabled  bool `yaml:"bridge_enabled"`
+		NomenEnabled   bool `yaml:"nomen_enabled"`
+		ActiveLearning bool `yaml:"active_learning"`
+		MaxAgents      int  `yaml:"max_agents"`
+		MultiNode      bool `yaml:"multi_node"`
+		ThreatHeatmap  bool `yaml:"threat_heatmap"`
+		TeamRBAC       bool `yaml:"team_rbac"`
+	} `yaml:"features"`
+}
+
+var (
+	Cfg     YamlConfig
+	cfgOnce sync.Once
+)
+
+// LoadConfig reads config.yaml once, falls back to defaults.
+func LoadConfig() YamlConfig {
+	cfgOnce.Do(func() {
+		Cfg = defaultConfig()
+		data, err := os.ReadFile(ConfigPath)
+		if err == nil {
+			_ = yaml.Unmarshal(data, &Cfg)
+		}
+		// Apply env var overrides (highest priority)
+		if v := os.Getenv("PRIMARY_SITE"); v != "" {
+			Cfg.Email.FromAddress = v // will be overwritten below
+		}
+		if v := os.Getenv("LLM_BASE_URL"); v != "" {
+			Cfg.LLM.BaseURL = v
+		}
+		if v := os.Getenv("STRIKE_URL"); v != "" {
+			Cfg.Strike.URL = v
+		}
+		if v := os.Getenv("BACKEND_URL"); v != "" {
+			Cfg.Landing.URL = v
+		}
+		if v := os.Getenv("EMAIL_FROM"); v != "" {
+			Cfg.Email.FromAddress = v
+		}
+		if v := os.Getenv("EMAIL_NAME"); v != "" {
+			Cfg.Email.FromName = v
+		}
+
+		// Apply defaults for empty fields
+		if Cfg.Network.WireguardIP == "" {
+			Cfg.Network.WireguardIP = "127.0.0.1"
+		}
+		if Cfg.LLM.BaseURL == "" {
+			Cfg.LLM.BaseURL = "http://localhost:8080/v1"
+		}
+		if Cfg.Email.FromAddress == "" {
+			Cfg.Email.FromAddress = "shield@localhost"
+		}
+		if Cfg.SMTP.Host == "" {
+			Cfg.SMTP.Host = "127.0.0.1"
+		}
+		if Cfg.SMTP.Port == 0 {
+			Cfg.SMTP.Port = 25
+		}
+		if Cfg.Strike.URL == "" {
+			Cfg.Strike.URL = "local"
+		}
+		if Cfg.Landing.URL == "" {
+			Cfg.Landing.URL = "http://127.0.0.1:8081"
+		}
+		if Cfg.Tier == "" {
+			Cfg.Tier = "community"
+		}
+		if Cfg.Features.MaxAgents == 0 {
+			Cfg.Features.MaxAgents = 15
+		}
+	})
+	return Cfg
+}
+
+func defaultConfig() YamlConfig {
+	return YamlConfig{}
+}
+
+// ReadVault reads a secret from the vault directory.
+func ReadVault(name string) string {
+	data, err := os.ReadFile(VaultDir + "/" + name)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSpace(string(data))
+}
+
+// IsFeatureEnabled checks if a feature is available for the current tier.
+func IsFeatureEnabled(feature string) bool {
+	cfg := LoadConfig()
+	if cfg.Tier == "enterprise" {
+		return true
+	}
+	switch feature {
+	case "teacher":
+		return cfg.Features.TeacherEnabled
+	case "auditor":
+		return cfg.Features.AuditorEnabled
+	case "bridge":
+		return cfg.Features.BridgeEnabled
+	case "nomen":
+		return cfg.Features.NomenEnabled
+	case "active_learning":
+		return cfg.Features.ActiveLearning
+	case "multi_node":
+		return cfg.Features.MultiNode
+	case "threat_heatmap":
+		return cfg.Features.ThreatHeatmap
+	case "team_rbac":
+		return cfg.Features.TeamRBAC
+	}
+	return false
+}
+
+// StrikeURL is the counter-attack server. Read from config.yaml.
+var StrikeURL = "http://localhost:8443"
+
+// LandingURL is the origin backend. Read from config.yaml.
+var LandingURL = "http://127.0.0.1:8081"
+
+// SiteBackends is the fallback map for infra sites.
+// DB-backed RouteCache (from brain.sqlite) takes precedence.
+var SiteBackends = map[string]string{}
+
+// RouteCache is the in-memory copy of shield_routes from brain.sqlite.
+var RouteCache = map[string]string{}
+var routeCacheMu sync.RWMutex
+
+func StartRouteCache() {
+	refreshRoutes()
+	go func() {
+		for range time.Tick(60 * time.Second) {
+			refreshRoutes()
+		}
+	}()
+}
+
+func refreshRoutes() {
+	d, err := sql.Open("sqlite", BrainDB)
+	if err != nil {
+		return
+	}
+	defer d.Close()
+	rows, err := d.Query("SELECT domain, backend_url FROM shield_routes WHERE active = 1")
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+	newCache := map[string]string{}
+	for rows.Next() {
+		var domain, backend string
+		if rows.Scan(&domain, &backend) == nil {
+			newCache[domain] = backend
+		}
+	}
+	routeCacheMu.Lock()
+	RouteCache = newCache
+	routeCacheMu.Unlock()
+}
+
+func BackendForHost(host string) string {
+	routeCacheMu.RLock()
+	if b, ok := RouteCache[host]; ok {
+		routeCacheMu.RUnlock()
+		return b
+	}
+	routeCacheMu.RUnlock()
+	cfg := LoadConfig()
+	if b, ok := SiteBackends[host]; ok {
+		return b
+	}
+	return cfg.Landing.URL
+}
+
+var TrustedPrefixes = []string{
+	"127.", "::1", "0.0.0.0",
+	"10.88.", "10.89.", "::ffff:10.88.", "::ffff:10.89.",
+}
+
+var GoodBots = []string{
+	"Googlebot", "Bingbot", "Slurp", "DuckDuckBot", "Baidu",
+	"YandexBot", "Sogou", "Exabot", "facebookexternalhit",
+	"Twitterbot", "LinkedInBot",
+}
+
+var Honeypaths = []string{
+	".aws/credentials", ".env", ".git/config", "wp-admin", "wp-login",
+	"xmlrpc.php", "phpmyadmin", "adminer.php", "actuator", "heapdump",
+	"server-status", "debug.log", "docker-compose.yml", "config.yml",
+	"console/", "phpinfo.php", ".git/HEAD", "wp-config.php.bak",
+}
+
+var FederalCodes = map[string]map[string]interface{}{
+	"xmlrpc":   {"sar": "MF-20-EXEC-CMD", "fbi": "Hacking - WordPress XMLRPC Abuse", "mitre": []string{"T1190"}},
+	"git":      {"sar": "MF-26-LA-OPEN-DIR", "fbi": "Data Breach Risk - Exposed Repository", "mitre": []string{"T1213"}},
+	"wp-admin": {"sar": "MF-20-EXEC-CMD", "fbi": "Hacking - Unauthorized Admin Access", "mitre": []string{"T1078"}},
+	"wp-login": {"sar": "MF-20-EXEC-CMD", "fbi": "Hacking - WordPress Login Brute", "mitre": []string{"T1110"}},
+	"aws":      {"sar": "MF-26-LA-OPEN-DIR", "fbi": "Data Breach Risk - Cloud Credentials", "mitre": []string{"T1552"}},
+	"env":      {"sar": "MF-26-LA-OPEN-DIR", "fbi": "Data Breach Risk - Environment File", "mitre": []string{"T1552"}},
+	"phpinfo":  {"sar": "MF-26-LA-OPEN-DIR", "fbi": "Data Breach Risk - Info Disclosure", "mitre": []string{"T1592"}},
+	"login":    {"sar": "MF-24-ZEE-SCAN", "fbi": "Unauthorized Access Attempt", "mitre": []string{"T1078"}},
+	"default":  {"sar": "MF-24-ZEE-SCAN", "fbi": "Computer Crimes - Scanner Activity", "mitre": []string{"T1595"}},
+}
+
+var MonitoredServices = []string{
+	"aegis-shield-go", "aegis-soul-go", "aegis-trap-go", "aegis-geoip-go",
+	"aegis-c", "aegis-auditor", "aegis-dashboard",
+}
+
+var MonitoredPorts = []int{3000, 3001, 3007, 20129, 8086, 20130, 4040, 9001, 8899}
