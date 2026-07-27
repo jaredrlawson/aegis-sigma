@@ -28,10 +28,9 @@ ARG TARGETARCH
 RUN apt-get update && apt-get install -y dpkg-dev && rm -rf /var/lib/apt/lists/*
 WORKDIR /deb
 COPY packaging/deb/DEBIAN/ DEBIAN/
-RUN mkdir -p usr/local/bin usr/bin usr/share/aegis-sigma/agents/security usr/share/aegis-sigma/training usr/lib/aegis-sigma
+RUN mkdir -p usr/local/bin usr/bin usr/share/aegis-sigma/training usr/lib/aegis-sigma
 COPY --from=go-builder /build/aegis-* usr/local/bin/
 COPY --from=c-builder /build/aegis-c-engine usr/bin/
-COPY agents/security/*.md usr/share/aegis-sigma/agents/security/
 COPY training/*.py usr/share/aegis-sigma/training/
 COPY config/config.yaml usr/share/aegis-sigma/config.yaml
 COPY scripts/setup-wizard.sh usr/lib/aegis-sigma/setup-wizard.sh
