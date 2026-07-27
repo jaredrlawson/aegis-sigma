@@ -2,6 +2,9 @@
 
 Open-source web security platform with SIMD-optimized C inference, LightGBM classifier, Isolation Forest anomaly detection, and Go gateway.
 
+**Best for:** Developers, homelab users, open-source contributors.
+**Benefit:** "Free security firewall you can train on your own traffic."
+
 ## Quick Start
 
 ```bash
