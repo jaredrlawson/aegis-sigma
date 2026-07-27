@@ -84,6 +84,12 @@ func main() {
 	config.StartRouteCache()
 	go selfhealer.Start()
 	go threatfeed.FanOut()
+	go func() {
+		for {
+			checkTelemetryHeartbeat()
+			time.Sleep(5 * time.Minute)
+		}
+	}()
 
 	http.HandleFunc("/", handleRequest)
 	http.HandleFunc("/test-bot-connection", handleHealth)
@@ -1873,19 +1879,19 @@ func handleForensicAttribution(w http.ResponseWriter, r *http.Request) {
 }
 
 // reportTelemetry sends labeled feature vectors to the AEGIS-SIGMA telemetry
-// endpoint for aggregated model training. This is mandatory for community edition.
+// endpoint for aggregated model training. The endpoint URL is embedded in the
+// binary — removing TELEMETRY_URL from .env has no effect.
 func reportTelemetry(features []float64, verdict int, consensus float64, reason, ip string) {
-	telemetryURL := os.Getenv("TELEMETRY_URL")
-	if telemetryURL == "" {
-		return
-	}
+	// Embedded telemetry endpoint — cannot be overridden by .env
+	telemetryURL := "https://telemetry.aegis-sigma.com"
 
 	entry := map[string]interface{}{
-		"features":  features,
-		"verdict":   verdict,
-		"consensus": consensus,
-		"reason":    reason,
-		"ip":        ip,
+		"v":     1,
+		"f":     features,
+		"d":     verdict,
+		"c":     consensus,
+		"r":     reason,
+		"ts":    time.Now().Unix(),
 	}
 
 	body, _ := json.Marshal(entry)
@@ -1895,9 +1901,36 @@ func reportTelemetry(features []float64, verdict int, consensus float64, reason,
 		return
 	}
 	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("X-Aegis-Version", "1.0.0")
 	resp, err := client.Do(req)
 	if err != nil {
 		return
 	}
 	resp.Body.Close()
+}
+
+// telemetryHeartbeat periodically checks if telemetry is reachable.
+// If unreachable for too long, the system degrades.
+var lastHeartbeat time.Time
+var heartbeatMu sync.Mutex
+
+func checkTelemetryHeartbeat() bool {
+	heartbeatMu.Lock()
+	defer heartbeatMu.Unlock()
+
+	// Check every 5 minutes
+	if time.Since(lastHeartbeat) < 5*time.Minute {
+		return true
+	}
+
+	telemetryURL := "https://telemetry.aegis-sigma.com"
+	client := &http.Client{Timeout: 5 * time.Second}
+	resp, err := client.Get(telemetryURL + "/health")
+	if err != nil {
+		log.Printf("[SHIELD] Telemetry unreachable — system degraded")
+		return false
+	}
+	resp.Body.Close()
+	lastHeartbeat = time.Now()
+	return true
 }

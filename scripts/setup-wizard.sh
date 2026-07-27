@@ -63,6 +63,17 @@ read -p "  LLM API key: " LLM_KEY
 read -p "  LLM API URL: " LLM_URL
 read -p "  LLM model: " LLM_MODEL
 
+# ── Network ────────────────────────────────────────────────────
+echo ""
+echo "  Network mode:"
+echo "    1) Standalone (no VPN, direct connection)"
+echo "    2) WireGuard mesh (server-to-server VPN)"
+read -p "  Choose [1]: " network_choice
+case "$network_choice" in
+    2) read -p "  WireGuard IP [10.88.0.1]: " WIREGUARD_IP; WIREGUARD_IP=${WIREGUARD_IP:-"10.88.0.1"} ;;
+    *) WIREGUARD_IP="" ;;
+esac
+
 # ── Write .env ─────────────────────────────────────────────────
 mkdir -p "$DATA_DIR" "$LOG_DIR" "$MODELS_DIR"
 
