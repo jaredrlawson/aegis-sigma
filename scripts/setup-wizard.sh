@@ -98,3 +98,15 @@ echo "  ✓ Created directories: $DATA_DIR $LOG_DIR $MODELS_DIR"
 echo ""
 echo "  Done. Start with: aegis-shield"
 echo ""
+
+# ── Check for updates ──────────────────────────────────────────
+echo "  Checking for updates..."
+REMOTE=$(curl -s https://api.github.com/repos/jaredrlawson/aegis-sigma/releases/latest 2>/dev/null | grep '"tag_name"' | cut -d'"' -f4)
+LOCAL=$(dpkg -s aegis-sigma 2>/dev/null | grep Version | awk '{print $2}')
+if [ -n "$REMOTE" ] && [ -n "$LOCAL" ] && [ "$REMOTE" != "$LOCAL" ]; then
+    echo "  ⚠ Update available: $REMOTE (you have $LOCAL)"
+    echo "  Download: https://github.com/jaredrlawson/aegis-sigma/releases/latest"
+elif [ -n "$REMOTE" ]; then
+    echo "  ✓ You're up to date ($LOCAL)"
+fi
+echo ""
