@@ -27,9 +27,9 @@ N_FEATURES = 30
 N_TREES = 100
 MAX_DEPTH = 10
 
-MODELS_DIR = "/var/lib/aegis-sigma/models"
-TRAINING_DIR = "/mnt/data/training"
-BRAIN_DB = "/mnt/data/databases/brain.sqlite"
+MODELS_DIR = os.environ.get("MODELS_DIR", "models")
+TRAINING_DIR = os.environ.get("TRAINING_DIR", "training_data")
+BRAIN_DB = os.environ.get("BRAIN_DB", "brain.sqlite")
 
 
 def load_training_data():
