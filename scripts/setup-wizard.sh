@@ -1,8 +1,7 @@
 #!/bin/bash
-# AEGIS-SIGMA setup wizard — configures site, strike, and telemetry.
-# Run interactively after first install.
-
+# AEGIS-SIGMA setup wizard
 CONFIG="/etc/aegis-sigma/.env"
+LOCAL_ENV=".env"
 
 echo ""
 echo "  ╔═══════════════════════════════════════════════╗"
@@ -10,79 +9,81 @@ echo "  ║     AEGIS-SIGMA Setup Wizard                  ║"
 echo "  ╚═══════════════════════════════════════════════╝"
 echo ""
 
-# ── Data Collection Consent ──────────────────────────────────────
+# Use local .env if not root, /etc/aegis-sigma/.env if root
+if [ "$(id -u)" -eq 0 ]; then
+    ENVFILE="$CONFIG"
+else
+    ENVFILE="$LOCAL_ENV"
+fi
+
+# ── Consent ────────────────────────────────────────────────────
 echo "  AEGIS-SIGMA collects anonymized threat data (attack patterns,"
 echo "  IP fingerprints, classification results) to improve model"
 echo "  accuracy across the network. No personal data, no browsing"
 echo "  history, no content — only security telemetry."
 echo ""
-echo "    1) Enable telemetry (recommended) — helps improve protection"
-echo "    2) Disable telemetry — local only, no data shared"
+echo "    1) Enable telemetry (recommended)"
+echo "    2) Disable telemetry"
 echo ""
 read -p "  Choose [1]: " telemetry_choice
-telemetry_choice=${telemetry_choice:-1}
+TELEMETRY=$( [ "$telemetry_choice" = "2" ] && echo "false" || echo "true" )
 
-case "$telemetry_choice" in
-    1) TELEMETRY="true"; echo "  → Telemetry enabled" ;;
-    *) TELEMETRY="false"; echo "  → Telemetry disabled" ;;
-esac
-
-echo ""
-
-# ── Your Domain ────────────────────────────────────────────────
-read -p "  Your domain (e.g. https://example.com): " PRIMARY_SITE
-PRIMARY_SITE=${PRIMARY_SITE:-"http://localhost:8080"}
-echo "  → Primary site: $PRIMARY_SITE"
-
-echo ""
+# ── Your Site ──────────────────────────────────────────────────
+read -p "  Your site URL [https://your-site.com]: " PRIMARY_SITE
+PRIMARY_SITE=${PRIMARY_SITE:-"https://your-site.com"}
 
 # ── Backend ────────────────────────────────────────────────────
-echo "  Origin server URL (the app Shield protects and proxies to)"
-echo "    Example: http://127.0.0.1:8080"
-echo "    Leave empty for Host header routing (multi-site)"
-read -p "  Backend URL [leave empty]: " BACKEND_URL
+read -p "  Origin server URL [http://127.0.0.1:8081]: " BACKEND_URL
 BACKEND_URL=${BACKEND_URL:-"http://127.0.0.1:8081"}
 
-echo ""
-
 # ── Strike Server ──────────────────────────────────────────────
-echo "  Strike server — where hostile traffic is redirected"
 echo ""
-echo "    1) Local only (default — no external connection)"
-echo "    2) Aegis-SIGMA hosted (pro license required)"
-echo "    3) My own server"
-echo ""
+echo "  Strike server (where hostile traffic is redirected):"
+echo "    1) Local only (default)"
+echo "    2) Aegis-SIGMA hosted (pro license)"
+echo "    3) Custom URL"
 read -p "  Choose [1]: " strike_choice
-strike_choice=${strike_choice:-1}
-
 case "$strike_choice" in
-    1) STRIKE_URL="local" ;;
     2) STRIKE_URL="http://strike.aegis-sigma.com:8443" ;;
-    3) read -p "  Strike URL: " STRIKE_URL; STRIKE_URL=${STIKE_URL:-"local"} ;;
+    3) read -p "  Strike URL: " STRIKE_URL; STRIKE_URL=${STRIKE_URL:-"local"} ;;
     *) STRIKE_URL="local" ;;
 esac
 
+# ── Data Paths ─────────────────────────────────────────────────
 echo ""
+echo "  Data storage paths (press Enter for defaults):"
+read -p "  Data directory [./data]: " DATA_DIR; DATA_DIR=${DATA_DIR:-"./data"}
+read -p "  Log directory [./logs]: " LOG_DIR; LOG_DIR=${LOG_DIR:-"./logs"}
+read -p "  Models directory [./models]: " MODELS_DIR; MODELS_DIR=${MODELS_DIR:-"./models"}
+
+# ── LLM (optional) ────────────────────────────────────────────
+echo ""
+echo "  LLM API for teacher (optional, leave empty to skip):"
+read -p "  LLM API key: " LLM_KEY
+read -p "  LLM API URL: " LLM_URL
+read -p "  LLM model: " LLM_MODEL
 
 # ── Write .env ─────────────────────────────────────────────────
-cat > "$CONFIG" <<EOF
+mkdir -p "$DATA_DIR" "$LOG_DIR" "$MODELS_DIR"
+
+cat > "$ENVFILE" <<EOF
 TELEMETRY=$TELEMETRY
 PRIMARY_SITE=$PRIMARY_SITE
 BACKEND_URL=$BACKEND_URL
 STRIKE_URL=$STRIKE_URL
-WIREGUARD_IP=127.0.0.1
+DATA_DIR=$DATA_DIR
+LOG_DIR=$LOG_DIR
+MODELS_DIR=$MODELS_DIR
+VAULT_DIR=./vault
+LLM_KEY=$LLM_KEY
+LLM_MODEL=$LLM_MODEL
+LLM_URL=https://api.openai.com/v1/chat/completions
 EOF
 
-chmod 644 "$CONFIG"
-echo "  ✓ Saved to $CONFIG"
+chmod 600 "$ENVFILE"
 echo ""
-
-# ── Restart ────────────────────────────────────────────────────
-echo "  Restarting services..."
-for svc in aegis-shield-go aegis-bridge-go; do
-    systemctl restart "$svc" 2>/dev/null && echo "  ✓ $svc" || true
-done
-
+echo "  ✓ Saved to $ENVFILE"
+echo "  ✓ Created directories: $DATA_DIR $LOG_DIR $MODELS_DIR"
 echo ""
-echo "  Done. Services running."
+echo "  Done. Start with: aegis-shield"
 echo ""
