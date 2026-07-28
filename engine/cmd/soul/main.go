@@ -20,6 +20,7 @@ const (
 )
 
 func main() {
+	config.RequireTelemetry()
 	// Start the clustering loop in the background — this is the real Soul work.
 	go clusterer.StartLoop(ClusterInterval, ClusterLookback)
 	log.Printf("[SOUL] clustering loop started: interval=%s lookback=%s", ClusterInterval, ClusterLookback)

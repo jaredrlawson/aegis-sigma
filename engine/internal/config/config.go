@@ -2,6 +2,7 @@ package config
 
 import (
 	"database/sql"
+	"fmt"
 	"os"
 	"strings"
 	"sync"
@@ -18,7 +19,6 @@ const (
 	CEngineTimeout    = 10000 * time.Millisecond
 	GeoIPURL          = "http://127.0.0.1:4040"
 	BrainDB           = "/var/lib/aegis-shield-soul/brain.sqlite"
-	NomenDB           = "/var/lib/aegis-shield-soul/nomen.db"
 	EvidenceDir       = "/var/log/aegis"
 	EvidenceFile      = "/var/log/aegis/fbi-evidence.jsonl"
 	LiveFile          = "/var/log/aegis/live_events.jsonl"
@@ -46,26 +46,13 @@ type YamlConfig struct {
 		WireguardIP string `yaml:"wireguard_ip"`
 	} `yaml:"network"`
 	LLM struct {
-		BaseURL    string `yaml:"base_url"`
-		APIKey     string `yaml:"api_key"`
+		BaseURL     string `yaml:"base_url"`
+		APIKey      string `yaml:"api_key"`
 		ModelShield string `yaml:"model_shield"`
 		ModelSoul   string `yaml:"model_soul"`
-		ModelTeacher string `yaml:"model_teacher"`
+		ModelTeacher  string `yaml:"model_teacher"`
 		ModelCallPrep string `yaml:"model_callprep"`
 	} `yaml:"llm"`
-	Email struct {
-		FromAddress string `yaml:"from_address"`
-		FromName    string `yaml:"from_name"`
-	} `yaml:"email"`
-	Stripe struct {
-		SuccessURL string `yaml:"success_url"`
-		CancelURL  string `yaml:"cancel_url"`
-	} `yaml:"stripe"`
-	SMTP struct {
-		Host string `yaml:"host"`
-		Port int    `yaml:"port"`
-		From string `yaml:"from"`
-	} `yaml:"smtp"`
 	Strike struct {
 		URL string `yaml:"url"`
 	} `yaml:"strike"`
@@ -74,15 +61,7 @@ type YamlConfig struct {
 	} `yaml:"landing"`
 	Tier     string `yaml:"tier"`
 	Features struct {
-		TeacherEnabled bool `yaml:"teacher_enabled"`
-		AuditorEnabled bool `yaml:"auditor_enabled"`
-		BridgeEnabled  bool `yaml:"bridge_enabled"`
-		NomenEnabled   bool `yaml:"nomen_enabled"`
-		ActiveLearning bool `yaml:"active_learning"`
 		MaxAgents      int  `yaml:"max_agents"`
-		MultiNode      bool `yaml:"multi_node"`
-		ThreatHeatmap  bool `yaml:"threat_heatmap"`
-		TeamRBAC       bool `yaml:"team_rbac"`
 	} `yaml:"features"`
 }
 
@@ -112,23 +91,8 @@ func LoadConfig() YamlConfig {
 		if Cfg.LLM.ModelSoul == "" {
 			Cfg.LLM.ModelSoul = "sambanova/gpt-oss-120b"
 		}
-		if Cfg.LLM.ModelTeacher == "" {
-			Cfg.LLM.ModelTeacher = "google/gemini-2.5-pro"
-		}
-		if Cfg.LLM.ModelCallPrep == "" {
-			Cfg.LLM.ModelCallPrep = "google/gemma-4"
-		}
 		if Cfg.LLM.APIKey == "" {
 			Cfg.LLM.APIKey = ReadVault("openrouter.key")
-		}
-		if Cfg.Email.FromAddress == "" {
-			Cfg.Email.FromAddress = "shield@example.com"
-		}
-		if Cfg.SMTP.Host == "" {
-			Cfg.SMTP.Host = "127.0.0.1"
-		}
-		if Cfg.SMTP.Port == 0 {
-			Cfg.SMTP.Port = 25
 		}
 		if Cfg.Strike.URL == "" {
 			Cfg.Strike.URL = "http://localhost:8443"
@@ -161,28 +125,6 @@ func ReadVault(name string) string {
 
 // IsFeatureEnabled checks if a feature is available for the current tier.
 func IsFeatureEnabled(feature string) bool {
-	cfg := LoadConfig()
-	if cfg.Tier == "enterprise" {
-		return true
-	}
-	switch feature {
-	case "teacher":
-		return cfg.Features.TeacherEnabled
-	case "auditor":
-		return cfg.Features.AuditorEnabled
-	case "bridge":
-		return cfg.Features.BridgeEnabled
-	case "nomen":
-		return cfg.Features.NomenEnabled
-	case "active_learning":
-		return cfg.Features.ActiveLearning
-	case "multi_node":
-		return cfg.Features.MultiNode
-	case "threat_heatmap":
-		return cfg.Features.ThreatHeatmap
-	case "team_rbac":
-		return cfg.Features.TeamRBAC
-	}
 	return false
 }
 
@@ -278,7 +220,28 @@ var FederalCodes = map[string]map[string]interface{}{
 
 var MonitoredServices = []string{
 	"aegis-shield-go", "aegis-soul-go", "aegis-trap-go", "aegis-geoip-go",
-	"aegis-c", "aegis-auditor", "aegis-dashboard",
+	"aegis-c",
 }
 
-var MonitoredPorts = []int{3000, 3001, 3007, 20129, 8086, 20130, 4040, 9001, 8899}
+var MonitoredPorts = []int{3000, 3001, 3007, 20129, 8086, 4040}
+
+// RequireTelemetry enforces telemetry for the free edition.
+// The service refuses to start without it.
+func RequireTelemetry() {
+	data, err := os.ReadFile("/etc/aegis-sigma/.env")
+	if err == nil {
+		for _, line := range strings.Split(string(data), "\n") {
+			line = strings.TrimSpace(line)
+			if strings.HasPrefix(line, "TELEMETRY=") && strings.HasSuffix(line, "=true") {
+				return
+			}
+		}
+	}
+	// Also check environment variable
+	if os.Getenv("TELEMETRY") == "true" {
+		return
+	}
+	fmt.Fprintln(os.Stderr, "[AEGIS-SIGMA] TELEMETRY is required for the free edition.")
+	fmt.Fprintln(os.Stderr, "[AEGIS-SIGMA] Set TELEMETRY=true in /etc/aegis-sigma/.env or upgrade to Pro.")
+	os.Exit(1)
+}

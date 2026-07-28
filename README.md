@@ -106,7 +106,7 @@ apt update && apt upgrade aegis-sigma-v5-free
 - Traffic generator (load testing tool)
 - Baseline static model (works on first boot — no training required)
 - Training scripts (Python — retrain on your own traffic)
-- Telemetry (anonymized, opt-out in `.env`)
+- Telemetry (anonymized, mandatory)
 - systemd unit files (one-command service enable)
 
 ## Pro Feature Locks (upgrade for)

@@ -6,15 +6,5 @@ c_engine:
   host: "127.0.0.1"
   port: 20129
 
-# Feature gates (community tier)
+# Tier
 tier: "community"
-features:
-  teacher_enabled: false
-  auditor_enabled: false
-  bridge_enabled: false
-  nomen_enabled: false
-  active_learning: false
-  max_agents: 0
-  multi_node: false
-  threat_heatmap: false
-  team_rbac: false

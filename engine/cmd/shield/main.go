@@ -71,6 +71,7 @@ func appendShieldLog(msg string) {
 var challengeRegexp = regexp.MustCompile(`aegis_challenge=([^;]+)`)
 
 func main() {
+	config.RequireTelemetry()
 	os.MkdirAll(config.EvidenceDir, 0755)
 	fbi.Init()
 	loadConfigEnv()
@@ -426,13 +427,12 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	ua := r.UserAgent()
 	path := r.URL.Path
 	rawIP := normalizeIP(ip)
+	siteID := r.Host
+	if siteID == "" {
+		siteID = "unknown"
+	}
 
 	if isStaticAsset(path) {
-		proxyToLanding(w, r)
-		return
-	}
-	// Brevo webhook — bypass Shield entirely (Brevo IPs change frequently)
-	if strings.HasPrefix(path, "/api/brevo/webhook") {
 		proxyToLanding(w, r)
 		return
 	}
@@ -458,6 +458,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(os.Stderr, "[SHIELD-DEBUG] cookie=%q valid=%v rawIP=%q ua=%q expected_prefix=%q path=%s\n", cookieVal[:min(len(cookieVal),8)], cookieValid, rawIP, ua[:min(len(ua),30)], expectedHash, path)
 	if cookieValid {
 		cadence.RecordVisit("aegis-sigma.com", path, time.Now().UnixMicro(), true)
+		go sendTelemetry(rawIP, ua, path, siteID, 0, 0, 0, 0, "BENIGN", "cookie_valid")
 		proxyToLanding(w, r)
 		return
 	}
@@ -479,6 +480,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	if isGatedPath {
 		profiler.Track(rawIP, ua, path, "", "")
+		go sendTelemetry(rawIP, ua, path, siteID, 0, 0, 0, 0, "BENIGN", "gated_challenge")
 		html := pages.ChallengePage(rawIP, ua, path, config.StrikeURL)
 		w.Header().Set("Content-Type", "text/html")
 		w.WriteHeader(403)
@@ -488,6 +490,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 
 	// Trusted/good bot bypass
 	if isTrustedIP || isGoodBotUser {
+		go sendTelemetry(rawIP, ua, path, siteID, 0, 0, 0, 0, "BENIGN", "trusted_or_bot")
 		proxyToLanding(w, r)
 		return
 	}
@@ -497,6 +500,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	// by the clusterer running on the Soul).
 	if banned, reason := blockledger.IsBlocked(rawIP); banned {
 		appendShieldLog(fmt.Sprintf("[BLOCKLEDGER] %s pre-blocked (%s) → GCP", rawIP, reason))
+		go sendTelemetry(rawIP, ua, path, siteID, 1, 4, 1.0, 1.0, "BLOCKED", reason)
 		dispatchStrike(rawIP, "AEGIS-REPEAT-"+reason)
 		// Route via /t/ — GCP tracker_hit fingerprints THEN serves weaponized page.
 		http.Redirect(w, r, config.StrikeURL+"/t/block-repeat", 302)
@@ -545,11 +549,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Persist every non-trusted classification exactly once. This guarantees
-	// real hostile traffic is recorded even if the C engine returns a low score.
-	siteID := r.Host
-	if siteID == "" {
-		siteID = "aegis-sigma.com"
-	}
+	// real hostile traffic is recorded even when the C engine returns a low score.
 	persistClassificationResult(rawIP, ua, path, result, siteID)
 
 	// If hostile, redirect to GCP counter-attack server immediately.
@@ -777,11 +777,31 @@ func classifyRequest(ip, ua, path, method, referer, acceptLang string, contentLe
 	}
 }
 
+// sendTelemetry posts a telemetry event to the local receiver.
+// Called on EVERY request — trusted, benign, hostile. No exceptions.
+func sendTelemetry(ip, ua, path, siteID string, hostile, tier int, consensus, alpha float64, actor, reason string) {
+	payload, _ := json.Marshal(map[string]interface{}{
+		"ip": ip, "ua": ua, "path": path, "site_id": siteID,
+		"hostile": hostile, "tier": tier, "consensus": consensus,
+		"alpha": alpha, "actor": actor, "reason": reason,
+		"timestamp": time.Now().UTC().Format(time.RFC3339),
+	})
+	go func() {
+		resp, err := http.Post("http://127.0.0.1:9002/api/telemetry",
+			"application/json", strings.NewReader(string(payload)))
+		if err == nil {
+			resp.Body.Close()
+		}
+	}()
+}
+
 // persistClassificationResult writes security_events, forensic_reports and
 // live_events once for any non-trusted classification. This is the single point
 // of persistence in the shield, eliminating double-writes and ensuring real
 // hostile traffic is always recorded even when the C engine returns a low score.
 func persistClassificationResult(ip, ua, path string, result types.ClassifyResult, siteID string) {
+	sendTelemetry(ip, ua, path, siteID, result.Hostile, result.Tier, result.Consensus, result.Alpha, result.Actor, result.Reason)
+
 	ttl, window, mss := 128, 65535, 1460
 	geo := enrichment.GetGeoIP(ip)
 	severity := map[int]string{4: "critical", 3: "high", 2: "medium", 1: "low"}[result.Tier]

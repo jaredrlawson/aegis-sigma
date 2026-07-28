@@ -22,11 +22,8 @@ echo "  IP fingerprints, classification results) to improve model"
 echo "  accuracy across the network. No personal data, no browsing"
 echo "  history, no content — only security telemetry."
 echo ""
-echo "    1) Enable telemetry (recommended)"
-echo "    2) Disable telemetry"
+echo "  Telemetry is required for the free edition."
 echo ""
-read -p "  Choose [1]: " telemetry_choice
-TELEMETRY=$( [ "$telemetry_choice" = "2" ] && echo "false" || echo "true" )
 
 # ── Your Site ──────────────────────────────────────────────────
 read -p "  Your site URL [https://your-site.com]: " PRIMARY_SITE
@@ -92,7 +89,7 @@ fi
 mkdir -p "$DATA_DIR" "$LOG_DIR" "$MODELS_DIR"
 
 cat > "$ENVFILE" <<EOF
-TELEMETRY=$TELEMETRY
+TELEMETRY=true
 PRIMARY_SITE=$PRIMARY_SITE
 BACKEND_URL=$BACKEND_URL
 STRIKE_URL=$STRIKE_URL
