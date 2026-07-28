@@ -10,15 +10,15 @@ Open-source web security platform with SIMD-optimized C inference, LightGBM clas
 ```bash
 # Download latest .deb from releases
 # ARM64 (Raspberry Pi 4/5, Oracle Free Tier, AWS Graviton):
-sudo dpkg -i aegis-sigma-v5-free_1.1.0-0_arm64.deb
+sudo dpkg -i aegis-sigma-v5-free_1.1.0-1_arm64.deb
 # AMD64 (x86_64 servers):
-sudo dpkg -i aegis-sigma-v5-free_1.1.0-0_amd64.deb
+sudo dpkg -i aegis-sigma-v5-free_1.1.0-1_amd64.deb
 
 # The setup wizard runs automatically on install.
 # Edit config any time: sudo nano /etc/aegis-sigma/.env
 
 # Start services
-sudo systemctl enable --now aegis-c aegis-shield aegis-soul aegis-trap
+sudo systemctl enable --now aegis-c aegis-shield aegis-soul aegis-geoip aegis-trap aegis-bridge
 
 # Verify (C engine health endpoint)
 curl http://localhost:8086/
@@ -104,7 +104,10 @@ apt update && apt upgrade aegis-sigma-v5-free
 - C Engine (30-feature ML inference — sub-millisecond, 2-3 MB RAM)
 - Go Shield (HTTP classifier + challenge pages, port 3000)
 - Go Soul (Isolation Forest anomaly detection, port 3007)
+- Go GeoIP (MaxMind IP enrichment, port 4040)
 - Go Trap (honeypots + tarpit, port 3001)
+- Go Bridge (lead management API, port 8899)
+- Traffic generator (load testing tool)
 - Baseline static model (works on first boot — no training required)
 - Training scripts (Python — retrain on your own traffic)
 - Telemetry (anonymized, opt-out in `.env`)
