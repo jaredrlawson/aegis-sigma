@@ -4,6 +4,7 @@ Open-source web security platform with SIMD-optimized C inference, LightGBM clas
 
 **Best for:** Developers, homelab users, open-source contributors.
 **Benefit:** "Free security firewall you can train on your own traffic."
+**Pricing:** [aegis-sigma.com/pricing](https://aegis-sigma.com/pricing)
 
 ## Quick Start
 
@@ -18,7 +19,7 @@ sudo dpkg -i aegis-sigma-v5-free_1.1.0-1_amd64.deb
 # Edit config any time: sudo nano /etc/aegis-sigma/.env
 
 # Start services
-sudo systemctl enable --now aegis-c aegis-shield aegis-soul aegis-geoip aegis-trap aegis-bridge
+sudo systemctl enable --now aegis-c aegis-shield aegis-soul aegis-geoip aegis-trap
 
 # Verify (C engine health endpoint)
 curl http://localhost:8086/
@@ -45,7 +46,6 @@ Internet → Go Shield (:3000)
 | aegis-soul | 3007 | Event clustering + LLM integration |
 | aegis-trap | 3001 | Honeypots + tarpit |
 | aegis-geoip | 4040 | IP enrichment (MaxMind) |
-| aegis-bridge | 8899 | Lead management API |
 | aegis-c-engine | 20129 | ML inference engine |
 
 ## SSH Log Tailing
@@ -58,9 +58,6 @@ ssh user@your-server "tail -f /var/log/aegis/shield_soul.log"
 
 # C Engine (ML inference)
 ssh user@your-server "journalctl -u aegis-c -f"
-
-# Bridge (lead management)
-ssh user@your-server "tail -f /var/log/aegis/bridge-go.log"
 
 # Trap (honeypots)
 ssh user@your-server "journalctl -u aegis-trap -f"
@@ -106,7 +103,6 @@ apt update && apt upgrade aegis-sigma-v5-free
 - Go Soul (Isolation Forest anomaly detection, port 3007)
 - Go GeoIP (MaxMind IP enrichment, port 4040)
 - Go Trap (honeypots + tarpit, port 3001)
-- Go Bridge (lead management API, port 8899)
 - Traffic generator (load testing tool)
 - Baseline static model (works on first boot — no training required)
 - Training scripts (Python — retrain on your own traffic)
