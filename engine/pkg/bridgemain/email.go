@@ -11,7 +11,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/aegis-sigma/engine/internal/config"
 )
 
 // EmailSender handles sending emails via Brevo.
@@ -24,11 +23,10 @@ type EmailSender struct {
 
 // NewEmailSender creates an email sender from vault keys + config.
 func NewEmailSender() *EmailSender {
-	cfg := config.LoadConfig()
 	return &EmailSender{
 		APIKey:     readBrevoKey(),
-		FromEmail:  cfg.Email.FromAddress,
-		FromName:   cfg.Email.FromName,
+		FromEmail:  "jared@aegis-sigma.com",
+		FromName:   "Aegis-SIGMA Security",
 		HTTPClient: &http.Client{Timeout: 30 * time.Second},
 	}
 }
@@ -170,8 +168,8 @@ func buildReportHTML(r Report) string {
 </div>
 
 <div style="text-align:center;padding:20px 0;">
-<p style="color:#8b949e;font-size:12px;">AEGIS-SIGMA Security</p>
-<p style="color:#8b949e;font-size:11px;">If you prefer not to receive future emails, reply unsubscribe</p>
+<p style="color:#8b949e;font-size:12px;">Aegis-SIGMA Security, Naples, FL 34103</p>
+<p style="color:#8b949e;font-size:11px;">You are receiving this because your website appeared in a security scan. To unsubscribe, click here.</p>
 </div>
 </div>
 </body>
@@ -235,8 +233,8 @@ func buildQuoteHTML(q Quote, checkoutURL string) string {
 </div>
 
 <div style="text-align:center;padding:20px 0;">
-<p style="color:#8b949e;font-size:12px;">AEGIS-SIGMA Security</p>
-<p style="color:#8b949e;font-size:11px;">If you prefer not to receive future emails, reply unsubscribe</p>
+<p style="color:#8b949e;font-size:12px;">Aegis-SIGMA Security, Naples, FL 34103</p>
+<p style="color:#8b949e;font-size:11px;">You are receiving this because your website appeared in a security scan. To unsubscribe, click here.</p>
 </div>
 </div>
 </body>
