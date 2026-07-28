@@ -119,13 +119,8 @@ echo ""
 echo "  ✓ Saved to $ENVFILE"
 echo "  ✓ Created directories: $DATA_DIR $LOG_DIR $MODELS_DIR"
 echo ""
-echo "  Start with: aegis-shield"
-echo "  Update: apt update && apt upgrade aegis-sigma"
-echo ""
-echo "  ✓ Saved to $ENVFILE"
-echo "  ✓ Created directories: $DATA_DIR $LOG_DIR $MODELS_DIR"
-echo ""
-echo "  Done. Start with: aegis-shield"
+echo "  Start services: sudo systemctl enable --now aegis-c aegis-shield aegis-soul aegis-geoip aegis-trap"
+echo "  Update: apt update && apt upgrade aegis-sigma-v5-free"
 echo ""
 
 # ── Check for updates ──────────────────────────────────────────
@@ -138,4 +133,17 @@ if [ -n "$REMOTE" ] && [ -n "$LOCAL" ] && [ "$REMOTE" != "$LOCAL" ]; then
 elif [ -n "$REMOTE" ]; then
     echo "  ✓ You're up to date ($LOCAL)"
 fi
+echo ""
+
+# ── Upgrade prompt ─────────────────────────────────────────────
+echo "  ─────────────────────────────────────────────────────"
+echo "  Want more? Pro tier ($59/mo) adds:"
+echo "    • Pre-trained threat models (plug & play)"
+echo "    • Web management dashboard"
+echo "    • Teacher LLM (120B deep-path forensics)"
+echo "    • 583 security agent prompts"
+echo "    • Monthly email threat reports"
+echo ""
+echo "  Upgrade: https://aegis-sigma.com/pricing"
+echo "  ─────────────────────────────────────────────────────"
 echo ""
