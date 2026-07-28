@@ -12,22 +12,19 @@ import (
 )
 
 const (
-	HealthToken = "" // Set via vault or config.yaml
+	HealthToken       = "" // Set via vault or config.yaml
 	CEngineHost       = "127.0.0.1"
 	CEnginePort       = 20129
 	CEngineTimeout    = 10000 * time.Millisecond
 	GeoIPURL          = "http://127.0.0.1:4040"
-	BrainDB           = "/mnt/data/databases/brain.sqlite"
-	NomenDB           = "/mnt/data/databases/nomen.db"
+	BrainDB           = "/var/lib/aegis-shield-soul/brain.sqlite"
+	NomenDB           = "/var/lib/aegis-shield-soul/nomen.db"
 	EvidenceDir       = "/var/log/aegis"
 	EvidenceFile      = "/var/log/aegis/fbi-evidence.jsonl"
 	LiveFile          = "/var/log/aegis/live_events.jsonl"
 	BlockLog          = "/var/log/aegis/aegis-shield.log"
 	IptablesChain     = "AEGIS_VOID"
 	VaultKeyPath      = "/etc/aegis-sigma/vault/openrouter.key"
-	LLMBaseURL        = "https://ai.aegis-sigma.com/v1"
-	LLModelShield     = "gc/gemini-3-flash-preview"
-	LLModelSoul       = "nvidia/z-ai/glm-5.1"
 	EnsembleThreshold = 0.618
 	WeightAlpha       = 0.55
 	WeightBeta        = 0.34
@@ -49,7 +46,12 @@ type YamlConfig struct {
 		WireguardIP string `yaml:"wireguard_ip"`
 	} `yaml:"network"`
 	LLM struct {
-		BaseURL string `yaml:"base_url"`
+		BaseURL    string `yaml:"base_url"`
+		APIKey     string `yaml:"api_key"`
+		ModelShield string `yaml:"model_shield"`
+		ModelSoul   string `yaml:"model_soul"`
+		ModelTeacher string `yaml:"model_teacher"`
+		ModelCallPrep string `yaml:"model_callprep"`
 	} `yaml:"llm"`
 	Email struct {
 		FromAddress string `yaml:"from_address"`
@@ -97,35 +99,30 @@ func LoadConfig() YamlConfig {
 		if err == nil {
 			_ = yaml.Unmarshal(data, &Cfg)
 		}
-		// Apply env var overrides (highest priority)
-		if v := os.Getenv("PRIMARY_SITE"); v != "" {
-			Cfg.Email.FromAddress = v // will be overwritten below
-		}
-		if v := os.Getenv("LLM_BASE_URL"); v != "" {
-			Cfg.LLM.BaseURL = v
-		}
-		if v := os.Getenv("STRIKE_URL"); v != "" {
-			Cfg.Strike.URL = v
-		}
-		if v := os.Getenv("BACKEND_URL"); v != "" {
-			Cfg.Landing.URL = v
-		}
-		if v := os.Getenv("EMAIL_FROM"); v != "" {
-			Cfg.Email.FromAddress = v
-		}
-		if v := os.Getenv("EMAIL_NAME"); v != "" {
-			Cfg.Email.FromName = v
-		}
-
 		// Apply defaults for empty fields
 		if Cfg.Network.WireguardIP == "" {
 			Cfg.Network.WireguardIP = "127.0.0.1"
 		}
 		if Cfg.LLM.BaseURL == "" {
-			Cfg.LLM.BaseURL = "http://localhost:8080/v1"
+			Cfg.LLM.BaseURL = "https://ai.aegis-sigma.com/v1"
+		}
+		if Cfg.LLM.ModelShield == "" {
+			Cfg.LLM.ModelShield = "google/gemini-2.5-flash"
+		}
+		if Cfg.LLM.ModelSoul == "" {
+			Cfg.LLM.ModelSoul = "sambanova/gpt-oss-120b"
+		}
+		if Cfg.LLM.ModelTeacher == "" {
+			Cfg.LLM.ModelTeacher = "google/gemini-2.5-pro"
+		}
+		if Cfg.LLM.ModelCallPrep == "" {
+			Cfg.LLM.ModelCallPrep = "google/gemma-4"
+		}
+		if Cfg.LLM.APIKey == "" {
+			Cfg.LLM.APIKey = ReadVault("openrouter.key")
 		}
 		if Cfg.Email.FromAddress == "" {
-			Cfg.Email.FromAddress = "shield@localhost"
+			Cfg.Email.FromAddress = "shield@example.com"
 		}
 		if Cfg.SMTP.Host == "" {
 			Cfg.SMTP.Host = "127.0.0.1"
@@ -134,7 +131,7 @@ func LoadConfig() YamlConfig {
 			Cfg.SMTP.Port = 25
 		}
 		if Cfg.Strike.URL == "" {
-			Cfg.Strike.URL = "local"
+			Cfg.Strike.URL = "http://localhost:8443"
 		}
 		if Cfg.Landing.URL == "" {
 			Cfg.Landing.URL = "http://127.0.0.1:8081"

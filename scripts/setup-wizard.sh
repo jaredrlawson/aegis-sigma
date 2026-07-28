@@ -67,12 +67,26 @@ read -p "  LLM model: " LLM_MODEL
 echo ""
 echo "  Network mode:"
 echo "    1) Standalone (no VPN, direct connection)"
-echo "    2) WireGuard mesh (server-to-server VPN)"
-read -p "  Choose [1]: " network_choice
+echo "    2) WireGuard mesh (server-to-server VPN) [RECOMMENDED]"
+echo ""
+echo "  WireGuard encrypts all internal traffic, hides admin ports"
+echo "  from the public internet, and enables multi-node clusters."
+echo ""
+read -p "  Choose [2]: " network_choice
 case "$network_choice" in
-    2) read -p "  WireGuard IP [10.88.0.1]: " WIREGUARD_IP; WIREGUARD_IP=${WIREGUARD_IP:-"10.88.0.1"} ;;
-    *) WIREGUARD_IP="" ;;
+    1) WIREGUARD_IP="" ;;
+    *) read -p "  WireGuard IP [10.88.0.1]: " WIREGUARD_IP; WIREGUARD_IP=${WIREGUARD_IP:-"10.88.0.1"} ;;
 esac
+
+# ── Install WireGuard if chosen and missing ────────────────────
+if [ -n "$WIREGUARD_IP" ] && [ "$(id -u)" -eq 0 ] && ! command -v wg &>/dev/null; then
+    echo ""
+    echo "  WireGuard not found. Install now?"
+    read -p "  Install WireGuard? [Y/n]: " wg_install
+    if [ "$wg_install" != "n" ] && [ "$wg_install" != "N" ]; then
+        apt-get install -y wireguard 2>/dev/null && echo "  ✓ WireGuard installed" || echo "  ⚠ Manual install: sudo apt-get install wireguard"
+    fi
+fi
 
 # ── Write .env ─────────────────────────────────────────────────
 mkdir -p "$DATA_DIR" "$LOG_DIR" "$MODELS_DIR"
@@ -86,6 +100,7 @@ DATA_DIR=$DATA_DIR
 LOG_DIR=$LOG_DIR
 MODELS_DIR=$MODELS_DIR
 VAULT_DIR=./vault
+WIREGUARD_IP=$WIREGUARD_IP
 LLM_KEY=$LLM_KEY
 LLM_MODEL=$LLM_MODEL
 LLM_URL=$LLM_URL

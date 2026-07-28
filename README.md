@@ -8,17 +8,19 @@ Open-source web security platform with SIMD-optimized C inference, LightGBM clas
 ## Quick Start
 
 ```bash
-# Clone
-git clone https://github.com/jaredrlawson/aegis-sigma.git
-cd aegis-sigma
+# Download latest .deb from releases
+# ARM64 (Raspberry Pi 4/5, Oracle Free Tier, AWS Graviton):
+sudo dpkg -i aegis-sigma-v5-free_1.1.0-0_arm64.deb
+# AMD64 (x86_64 servers):
+sudo dpkg -i aegis-sigma-v5-free_1.1.0-0_amd64.deb
 
-# Install
-sudo dpkg -i editions/free/aegis-sigma-v5-free_1.0.0-0_arm64.deb
+# The setup wizard runs automatically on install.
+# Edit config any time: sudo nano /etc/aegis-sigma/.env
 
-# Configure
-./scripts/setup.sh
+# Start services
+sudo systemctl enable --now aegis-c aegis-shield aegis-soul aegis-trap
 
-# Verify
+# Verify (C engine health endpoint)
 curl http://localhost:8086/
 ```
 
@@ -99,26 +101,31 @@ apt update && apt upgrade aegis-sigma-v5-free
 
 ## What's Included (Free)
 
-- C Engine (30-feature ML inference, not pre-trained)
-- Go Shield (HTTP classifier + challenge pages)
-- Go Soul (Isolation Forest anomaly detection)
-- Go GeoIP (MaxMind IP enrichment)
-- Go Trap (honeypots + tarpit)
-- Go Bridge (lead management API, disabled by default)
-- Traffic generator
-- Training scripts
+- C Engine (30-feature ML inference — sub-millisecond, 2-3 MB RAM)
+- Go Shield (HTTP classifier + challenge pages, port 3000)
+- Go Soul (Isolation Forest anomaly detection, port 3007)
+- Go Trap (honeypots + tarpit, port 3001)
+- Baseline static model (works on first boot — no training required)
+- Training scripts (Python — retrain on your own traffic)
+- Telemetry (anonymized, opt-out in `.env`)
+- systemd unit files (one-command service enable)
 
-## What's NOT Included (Pro only)
+## Pro Feature Locks (upgrade for)
 
-- Go Auditor (integrity verification + monitoring)
-- Go Dashboard (admin UI)
-- Teacher LLM (real-time classification)
-- Active Learning pipeline
-- Multi-Node Dashboard
-- Agent Library (583 prompts)
-- Pre-trained models
-- Automated incident response
-- Monthly email reports
+- 🔒 **Pro Feature: Pre-trained Threat Models** (Plug & Play — skip the training step)
+- 🔒 **Pro Feature: Web Management Dashboard** (graphs, live ops console, multi-node)
+- 🔒 **Pro Feature: Teacher LLM** (120B MoE deep-path forensics, real-time)
+- 🔒 **Pro Feature: Active Learning Pipeline** (continuous retraining from live traffic)
+- 🔒 **Pro Feature: Agent Library** (583 security prompt templates)
+- 🔒 **Pro Feature: Go Auditor** (integrity verification, 24/7 compliance probing)
+- 🔒 **Pro Feature: Automated Incident Response** (STIX-2.1 forensic packets)
+- 🔒 **Pro Feature: Monthly Email Threat Reports**
+
+## Managed Feature Locks (Managed tier and above)
+
+- 🔒 **Managed Feature: Active Deception & Advanced Tarpitting** (counter-attack server)
+- 🔒 **Managed Feature: Court-Ready Forensic Exporting** (law enforcement evidence pipeline)
+- 🔒 **Managed Feature: Our Servers, Our IP, Our AI API** (just point DNS at us)
 
 ## License
 

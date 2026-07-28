@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"math/rand"
 	"net"
 	"net/http"
@@ -70,26 +71,12 @@ func appendShieldLog(msg string) {
 var challengeRegexp = regexp.MustCompile(`aegis_challenge=([^;]+)`)
 
 func main() {
-	// Telemetry is mandatory — system refuses to start without it
-	if os.Getenv("TELEMETRY_URL") == "" {
-		fmt.Println("[SHIELD] ERROR: TELEMETRY_URL not configured.")
-		fmt.Println("[SHIELD] Set TELEMETRY_URL in .env or run ./scripts/setup.sh")
-		fmt.Println("[SHIELD] Telemetry is required for AEGIS-SIGMA Community Edition.")
-		os.Exit(1)
-	}
-
 	os.MkdirAll(config.EvidenceDir, 0755)
 	fbi.Init()
 	loadConfigEnv()
 	config.StartRouteCache()
 	go selfhealer.Start()
 	go threatfeed.FanOut()
-	go func() {
-		for {
-			checkTelemetryHeartbeat()
-			time.Sleep(5 * time.Minute)
-		}
-	}()
 
 	http.HandleFunc("/", handleRequest)
 	http.HandleFunc("/test-bot-connection", handleHealth)
@@ -109,6 +96,10 @@ func main() {
 	http.HandleFunc("/forensic-attribution", handleForensicAttribution)
 	http.HandleFunc("/api/strike/event", handleStrikeEvent)
 	http.HandleFunc("/api/groq-teacher", handleGroqTeacher)
+	http.HandleFunc("/api/security/incident-response", handleIncidentResponse)
+	http.HandleFunc("/api/security/threat-intel", handleThreatIntel)
+	http.HandleFunc("/api/security/compliance-check", handleComplianceCheck)
+	http.HandleFunc("/api/security/audit-summary", handleAuditSummary)
 	http.HandleFunc("/t/", handleTracker)
 	http.HandleFunc("/api/tracker/ingest", handleTrackerIngest)
 
@@ -326,7 +317,7 @@ func handlePowVerify(w http.ResponseWriter, r *http.Request) {
 	db.WriteLock()
 	logSecurityEvent(ip, geo["country"], geo["city"], "BENIGN_POW", "low",
 		req.UA, "/", 128, 65535, 1460, "", ts, agencyID,
-		0.0, 0.0, 0.0, os.Getenv("PRIMARY_SITE"))
+		0.0, 0.0, 0.0, "aegis-sigma.com")
 	db.WriteUnlock()
 	appendShieldLog(fmt.Sprintf("[POW-VERIFIED] %s solved %d-bit PoW in %d hashes — labeled benign", ip, req.Difficulty, req.Hashes))
 	w.Header().Set("Content-Type", "application/json")
@@ -440,6 +431,11 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 		proxyToLanding(w, r)
 		return
 	}
+	// Brevo webhook — bypass Shield entirely (Brevo IPs change frequently)
+	if strings.HasPrefix(path, "/api/brevo/webhook") {
+		proxyToLanding(w, r)
+		return
+	}
 	if path == "/test-bot-connection" || path == "/health" {
 		w.Header().Set("Content-Type", "application/json")
 		json.NewEncoder(w).Encode(map[string]string{"status": "ok", "agent": "v5.0", "version": "5.0.0"})
@@ -461,7 +457,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	}
 	fmt.Fprintf(os.Stderr, "[SHIELD-DEBUG] cookie=%q valid=%v rawIP=%q ua=%q expected_prefix=%q path=%s\n", cookieVal[:min(len(cookieVal),8)], cookieValid, rawIP, ua[:min(len(ua),30)], expectedHash, path)
 	if cookieValid {
-		cadence.RecordVisit(os.Getenv("PRIMARY_SITE"), path, time.Now().UnixMicro(), true)
+		cadence.RecordVisit("aegis-sigma.com", path, time.Now().UnixMicro(), true)
 		proxyToLanding(w, r)
 		return
 	}
@@ -552,7 +548,7 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 	// real hostile traffic is recorded even if the C engine returns a low score.
 	siteID := r.Host
 	if siteID == "" {
-		siteID = os.Getenv("PRIMARY_SITE")
+		siteID = "aegis-sigma.com"
 	}
 	persistClassificationResult(rawIP, ua, path, result, siteID)
 
@@ -618,11 +614,11 @@ func handleRequest(w http.ResponseWriter, r *http.Request) {
 			"validated", result.Consensus)
 
 		// 9. Cadence — record this request timing for harmonic-delay tracking
-		cadence.RecordVisit(os.Getenv("PRIMARY_SITE"), path, time.Now().UnixMicro(), false)
+		cadence.RecordVisit("aegis-sigma.com", path, time.Now().UnixMicro(), false)
 
 		// 10. Blockledger — durable blocked_ips row (kernel-level iptables is the
 		// tier-4 escalation; blockledger is the persistent truth).
-		blockledger.BlockIP(rawIP, result.Reason, os.Getenv("PRIMARY_SITE"), 1)
+		blockledger.BlockIP(rawIP, result.Reason, "aegis-sigma.com", 1)
 		if result.Tier == 4 {
 			synaptic.Blackhole(rawIP, 168) // 7-day blackhole for tier-4
 		}
@@ -772,11 +768,6 @@ func classifyRequest(ip, ua, path, method, referer, acceptLang string, contentLe
 	if tier >= 3 && geo["country"] != "" && geo["country"] != "XX" {
 		abuse.SendAbuseReport(rawIP, geo["asn"], geo["isp"], geo["country"],
 			reason, fmt.Sprintf("Consensus: %.3f, Actor: %s, UA: %s", consensus, actor, ua[:min(len(ua), 50)]))
-	}
-
-	// Report telemetry (mandatory for community edition)
-	if os.Getenv("TELEMETRY") == "true" {
-		go reportTelemetry(features, hostile, consensus, reason, rawIP)
 	}
 
 	return types.ClassifyResult{
@@ -1056,7 +1047,7 @@ func serveTrap(w http.ResponseWriter, r *http.Request, ip, ua, path string) {
 	// once and stay consistent with normal hostile classifications.
 	siteID := r.Host
 	if siteID == "" {
-		siteID = os.Getenv("PRIMARY_SITE")
+		siteID = "aegis-sigma.com"
 	}
 	result := types.ClassifyResult{
 		Hostile:     1,
@@ -1074,7 +1065,7 @@ func serveTrap(w http.ResponseWriter, r *http.Request, ip, ua, path string) {
 	// Deep-intelligence wire for trap hits (same as hostile blocks)
 	identity.Record(ip, ua, path, "honeypot", 1)
 	synaptic.RecordMemorize(ip, ua, path, "", "high", "honeypot-probe", "", "", 1)
-	blockledger.BlockIP(ip, "HONEYPOT_PROBE", os.Getenv("PRIMARY_SITE"), 1)
+	blockledger.BlockIP(ip, "HONEYPOT_PROBE", "aegis-sigma.com", 1)
 	trapledger.RecordVisit(ip, ua, r.Header.Get("Referer"), classifyHoneypath(path), "probe")
 
 	// Push to threat feed
@@ -1182,7 +1173,7 @@ func loadConfigEnv() {
 		switch k {
 		case "STRIKE_URL":
 			if v == "aegis-hosted" {
-				config.StrikeURL = os.Getenv("STRIKE_URL")
+				config.StrikeURL = "http://strike.aegis-sigma.com:8443"
 			} else if v == "local" || v == "" {
 				// Use Shield's own /t/<id> as the tracker —
 				// self-hosted mode. Point at localhost so
@@ -1635,9 +1626,10 @@ Consider: path patterns, user-agent behavior, timing coherence, and whether the 
 	userPrompt := fmt.Sprintf("%s\n\nC-engine consensus: %.4f (hostile=%d)\nPhi threshold: 0.618\n\n%s\n\nClassify this request. Is it BENIGN (real user) or HOSTILE (attack)?",
 		fibCtx.String(), req.CEngineConsensus, req.CEngineHostile, featBuf.String())
 
-	// Build Groq API request
-	groqReq := map[string]interface{}{
-		"model":       "groq/openai/gpt-oss-120b",
+	// Build LLM API request — model from config
+	cfg := config.LoadConfig()
+	llmReq := map[string]interface{}{
+		"model":       cfg.LLM.ModelTeacher,
 		"temperature": 0.1,
 		"max_tokens":  512,
 		"messages": []map[string]string{
@@ -1645,34 +1637,41 @@ Consider: path patterns, user-agent behavior, timing coherence, and whether the 
 			{"role": "user", "content": userPrompt},
 		},
 	}
-	groqBody, _ := json.Marshal(groqReq)
+	llmBody, _ := json.Marshal(llmReq)
 
-	// Call LLM via AEGIS gateway (not direct Groq — the C engine's key may only
-	// work through the gateway proxy).
+	// Call LLM via AEGIS gateway (not direct — use config base URL)
 	gatewayKey := req.APIKey
+	if gatewayKey == "" {
+		gatewayKey = cfg.LLM.APIKey
+	}
 	if data, err := os.ReadFile("/etc/aegis-sigma/vault/LLM_KEY"); err == nil {
 		gatewayKey = strings.TrimSpace(string(data))
 	}
-	client := &http.Client{Timeout: 15 * time.Second}
-	groqHTTP, err := http.NewRequest("POST", config.LoadConfig().LLM.BaseURL+"/chat/completions",
-		strings.NewReader(string(groqBody)))
+	llmURL := cfg.LLM.BaseURL + "/chat/completions"
+	client := &http.Client{Timeout: 60 * time.Second}
+	llmHTTP, err := http.NewRequest("POST", llmURL,
+		strings.NewReader(string(llmBody)))
 	if err != nil {
 		w.WriteHeader(500)
 		json.NewEncoder(w).Encode(map[string]interface{}{"error": "failed to create request"})
 		return
 	}
-	groqHTTP.Header.Set("Content-Type", "application/json")
-	groqHTTP.Header.Set("Authorization", "Bearer "+gatewayKey)
+	llmHTTP.Header.Set("Content-Type", "application/json")
+	llmHTTP.Header.Set("Authorization", "Bearer "+gatewayKey)
 
-	resp, err := client.Do(groqHTTP)
+	resp, err := client.Do(llmHTTP)
 	if err != nil {
 		w.WriteHeader(502)
-		json.NewEncoder(w).Encode(map[string]interface{}{"error": "groq api error: " + err.Error()})
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "llm api error: " + err.Error()})
 		return
 	}
 	defer resp.Body.Close()
 
-	var groqResp struct {
+	// Debug: log raw response
+	respBody, _ := io.ReadAll(resp.Body)
+	log.Printf("[TEACHER] Gateway response status=%d body=%s", resp.StatusCode, string(respBody[:min(len(respBody), 500)]))
+
+	var llmResp struct {
 		Choices []struct {
 			Message struct {
 				Content   string `json:"content"`
@@ -1680,22 +1679,22 @@ Consider: path patterns, user-agent behavior, timing coherence, and whether the 
 			} `json:"message"`
 		} `json:"choices"`
 	}
-	if err := json.NewDecoder(resp.Body).Decode(&groqResp); err != nil {
+	if err := json.NewDecoder(bytes.NewReader(respBody)).Decode(&llmResp); err != nil {
 		w.WriteHeader(502)
-		json.NewEncoder(w).Encode(map[string]interface{}{"error": "failed to parse groq response"})
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "failed to parse llm response"})
 		return
 	}
-	if len(groqResp.Choices) == 0 {
+	if len(llmResp.Choices) == 0 {
 		w.WriteHeader(502)
-		json.NewEncoder(w).Encode(map[string]interface{}{"error": "empty groq response"})
+		json.NewEncoder(w).Encode(map[string]interface{}{"error": "empty llm response"})
 		return
 	}
 
 	// Parse teacher verdict from LLM output
-	content := groqResp.Choices[0].Message.Content
-	// Fall back to reasoning tokens when content is empty (gpt-oss-120b behavior)
+	content := llmResp.Choices[0].Message.Content
+	// Fall back to reasoning tokens when content is empty
 	if content == "" {
-		content = groqResp.Choices[0].Message.Reasoning
+		content = llmResp.Choices[0].Message.Reasoning
 	}
 	verdict := "BENIGN"
 	confidence := 0.5
@@ -1721,8 +1720,8 @@ Consider: path patterns, user-agent behavior, timing coherence, and whether the 
 		"verdict":     verdict,
 		"confidence":  confidence,
 		"reasoning":   reasoning,
-		"model":       "groq/openai/gpt-oss-120b",
-		"provider":    "groq",
+		"model":       cfg.LLM.ModelTeacher,
+		"provider":    "llm",
 	})
 }
 
@@ -1876,61 +1875,4 @@ func handleForensicAttribution(w http.ResponseWriter, r *http.Request) {
 	}
 
 	json.NewEncoder(w).Encode(result)
-}
-
-// reportTelemetry sends labeled feature vectors to the AEGIS-SIGMA telemetry
-// endpoint for aggregated model training. The endpoint URL is embedded in the
-// binary — removing TELEMETRY_URL from .env has no effect.
-func reportTelemetry(features []float64, verdict int, consensus float64, reason, ip string) {
-	// Embedded telemetry endpoint — cannot be overridden by .env
-	telemetryURL := "https://telemetry.aegis-sigma.com"
-
-	entry := map[string]interface{}{
-		"v":     1,
-		"f":     features,
-		"d":     verdict,
-		"c":     consensus,
-		"r":     reason,
-		"ts":    time.Now().Unix(),
-	}
-
-	body, _ := json.Marshal(entry)
-	client := &http.Client{Timeout: 5 * time.Second}
-	req, err := http.NewRequest("POST", telemetryURL+"/api/telemetry", strings.NewReader(string(body)))
-	if err != nil {
-		return
-	}
-	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("X-Aegis-Version", "1.0.0")
-	resp, err := client.Do(req)
-	if err != nil {
-		return
-	}
-	resp.Body.Close()
-}
-
-// telemetryHeartbeat periodically checks if telemetry is reachable.
-// If unreachable for too long, the system degrades.
-var lastHeartbeat time.Time
-var heartbeatMu sync.Mutex
-
-func checkTelemetryHeartbeat() bool {
-	heartbeatMu.Lock()
-	defer heartbeatMu.Unlock()
-
-	// Check every 5 minutes
-	if time.Since(lastHeartbeat) < 5*time.Minute {
-		return true
-	}
-
-	telemetryURL := "https://telemetry.aegis-sigma.com"
-	client := &http.Client{Timeout: 5 * time.Second}
-	resp, err := client.Get(telemetryURL + "/health")
-	if err != nil {
-		log.Printf("[SHIELD] Telemetry unreachable — system degraded")
-		return false
-	}
-	resp.Body.Close()
-	lastHeartbeat = time.Now()
-	return true
 }

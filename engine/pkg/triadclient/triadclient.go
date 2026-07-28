@@ -65,7 +65,7 @@ func callLLM(model string, messages []map[string]string, maxTokens int) string {
 	}
 	data, _ := json.Marshal(body)
 
-	req, err := http.NewRequest("POST", config.LLMBaseURL+"/chat/completions", bytes.NewReader(data))
+	req, err := http.NewRequest("POST", config.LoadConfig().LLM.BaseURL+"/chat/completions", bytes.NewReader(data))
 	if err != nil {
 		return ""
 	}
@@ -157,7 +157,7 @@ func ShieldCheck(params map[string]interface{}) map[string]interface{} {
 		{"role": "system", "content": "You are AEGIS-SIGMA Shield. Analyze requests for threats. Return JSON: {\"verdict\": \"block\"|\"pass\", \"confidence\": 0.0-1.0, \"reason\": \"string\", \"threat_level\": \"low\"|\"medium\"|\"high\"|\"critical\"}"},
 		{"role": "user", "content": fmt.Sprintf("%v", params)},
 	}
-	response := callLLM(config.LLModelShield, messages, 256)
+	response := callLLM(config.LoadConfig().LLM.ModelShield, messages, 256)
 	result := extractJSON(response)
 	if result == nil {
 		return map[string]interface{}{"verdict": "pass", "confidence": 0.5, "reason": "llm_parse_failed"}
@@ -174,7 +174,7 @@ func SoulEngine(prompt string) map[string]interface{} {
 		{"role": "system", "content": "You are AEGIS-SIGMA Soul. Analyze attacks. Return JSON with assessment, attacker_type, confidence, indicators, recommendation."},
 		{"role": "user", "content": sanitizeInput(prompt)},
 	}
-	response := callLLM(config.LLModelSoul, messages, 1024)
+	response := callLLM(config.LoadConfig().LLM.ModelSoul, messages, 1024)
 	result := extractJSON(response)
 	if result == nil {
 		return map[string]interface{}{"assessment": "llm_parse_failed", "confidence": 0.0}
