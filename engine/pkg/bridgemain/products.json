@@ -1,0 +1,113 @@
+{
+  "products": [
+    {
+      "id": "pro",
+      "stripe_product": "prod_Uxyr4SDXQFmUzF",
+      "stripe_price": "price_1Ty2uCLxwt8jNoiseJ6Cihtp",
+      "name": "AEGIS-SIGMA v5 Pro",
+      "description": "Full security platform with pre-trained ML models, dashboard, auditor, teacher LLM, 583 agents, incident response, monthly reports",
+      "price": 5900,
+      "currency": "usd",
+      "interval": "month",
+      "features": [
+        "Pre-trained 30-feature ML models (shield.json 433KB + soul.json 2.8MB)",
+        "Go Dashboard — live ops console with Socket.IO streaming",
+        "Go Auditor — integrity verification + 24/7 compliance monitoring",
+        "Teacher LLM — 120B MoE deep-path forensics (real-time classification)",
+        "583 security agent prompts",
+        "Active Learning pipeline (continuous retraining)",
+        "Automated incident response (STIX-2.1 forensic packets)",
+        "Monthly email threat reports"
+      ]
+    },
+    {
+      "id": "pro-annual",
+      "stripe_product": "prod_Uxyr4C5BcKMD4l",
+      "stripe_price": "price_1Ty2uDLxwt8jNois7fR6fv9E",
+      "name": "AEGIS-SIGMA v5 Pro (Annual)",
+      "description": "Full security platform — annual billing saves $111/yr",
+      "price": 59700,
+      "currency": "usd",
+      "interval": "year",
+      "features": [
+        "Everything in Pro Monthly",
+        "Save $111/yr ($59×12 = $708, annual = $597)",
+        "1 year of core updates",
+        "Cancel anytime — no lock-in"
+      ]
+    },
+    {
+      "id": "managed-node",
+      "stripe_product": "prod_UxyrMfBWZkMtqs",
+      "stripe_price": "price_1Ty2uELxwt8jNoiseu8zWUEE",
+      "name": "AEGIS-SIGMA Managed Node",
+      "description": "Your VPS. Your IP. We run the brain. We deploy the .deb, 24/7 monitoring, managed updates, threat logging",
+      "price": 8900,
+      "currency": "usd",
+      "interval": "month",
+      "features": [
+        "We deploy the .deb on your VPS",
+        "Your IP — keep your reputation",
+        "24/7 monitoring + dashboards",
+        "Managed updates + threat logging",
+        "$0.50/M tokens over basic tier"
+      ]
+    },
+    {
+      "id": "managed",
+      "stripe_product": "prod_Uxyrfkmpl9Ydfy",
+      "stripe_price": "price_1Ty2uFLxwt8jNois66NCTAci",
+      "name": "AEGIS-SIGMA Managed",
+      "description": "Our servers. Our IP. Our counter-attack server. Our AI API. Just point DNS to us. Full AI stack + 24/7 monitoring + forensics + reports",
+      "price": 15900,
+      "currency": "usd",
+      "interval": "month",
+      "features": [
+        "Our servers / our IP / our SSL",
+        "Our counter-attack server (tarpit + counter-strike)",
+        "Our AI API — full deep-path forensics",
+        "Just point DNS to us — done",
+        "24/7 monitoring — Micro-C AI stack",
+        "Monthly threat reports",
+        "Zero server management",
+        "Cancel anytime"
+      ]
+    },
+    {
+      "id": "perpetual",
+      "stripe_product": "prod_UxyrbPHdd7NZgR",
+      "stripe_price": "price_1Ty2uGLxwt8jNoisx8oecQRD",
+      "name": "AEGIS-SIGMA v5 Perpetual",
+      "description": "One payment. Full offensive stack. Yours forever. Includes defensive counter-measures, law enforcement evidence logs, external AI API access",
+      "price": 159700,
+      "currency": "usd",
+      "interval": "one_time",
+      "features": [
+        "Everything in Pro Annual",
+        "Defensive Counter-Measures (Tarpits & Honeypots)",
+        "Law Enforcement Evidence Logs",
+        "External AI API Access",
+        "High-frequency telemetry (100ms)",
+        "All future core updates included",
+        "Own the .deb — no recurring fee"
+      ]
+    },
+    {
+      "id": "shield-vpn",
+      "stripe_product": "prod_UxysLt4W7B7IaU",
+      "stripe_price": "price_1Ty2uGLxwt8jNoisiBGgOZzG",
+      "name": "AEGIS-SIGMA Shield VPN",
+      "description": "WireGuard VPN + DNS ad/tracker/malware blocking. No logs. Sovereign IP.",
+      "price": 500,
+      "currency": "usd",
+      "interval": "month",
+      "features": [
+        "WireGuard encrypted tunnel",
+        "DNS Ad/Tracker Blocking",
+        "Malware Protection",
+        "No Activity Logs",
+        "Sovereign IP — recognized as human"
+      ]
+    }
+  ]
+}
