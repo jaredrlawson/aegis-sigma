@@ -11,7 +11,10 @@ Download the latest `.deb` from [Releases](https://github.com/jaredrlawson/aegis
 
 ```bash
 # ARM64 (Raspberry Pi 4/5, Oracle Free Tier, AWS Graviton, Oracle ARM)
-sudo dpkg -i aegis-sigma-v5-free_1.1.1-0_arm64.deb
+sudo dpkg -i aegis-sigma-v5-free_1.1.2-0_arm64.deb
+
+# AMD64 (x86_64 servers)
+sudo dpkg -i aegis-sigma-v5-free_1.1.2-0_amd64.deb
 
 # Start services
 sudo systemctl enable --now aegis-c aegis-shield aegis-soul
